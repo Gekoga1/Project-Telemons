@@ -1,4 +1,3 @@
-import random
 from typing import Union
 import sqlite3
 import logging
@@ -88,6 +87,8 @@ class Monster_Template:
         self.shield = 0
         self.alive = True
 
+        self.statuses = []
+
     def on_change(self):
         pass
 
@@ -173,6 +174,12 @@ class Monster_Template:
 
         logging.debug(f"{self.name} stats rebuilded"
                       f"{self.get_stats()} - {self.get_current_stats()}")
+
+    def reset(self):
+        self.rebuild_stats()
+        self.alive = True
+        self.shield = 0
+        self.statuses = []
 
     def show_skills(self):
         out = []
@@ -388,18 +395,37 @@ class Screech(Skill_Template):
             logging.info(f"{owner.name} tried to use {self.name}, but failed")
 
 
-test = Spylit(shiny=True, lvl=1)
+class Battle:
+    def __init__(self, blue_player, blue_team: list[Monster_Template], red_player, red_team: list[Monster_Template]):
+        for monster in blue_team + red_team:
+            monster.reset()
+
+        self.blue_player = blue_player
+        self.blue_team = blue_team
+        self.blue_active = blue_team[0]
+
+        self.red_player = red_player
+        self.red_team = red_team
+        self.red_active = red_team[0]
+
+    def print(self):
+        return f"{self.blue_active.battle_stats()}\n\n{self.red_active.battle_stats()}"
+
+    def turn(self):
+        pass
+
+    def start(self):
+        self.blue_active.on_change()
+        self.red_active.on_change()
+
+        self.turn()
+
+
+test = Spylit(shiny=True, lvl=15)
 test.generate_skills()
 
-print(test.battle_stats())
-print('--------------------------------------')
+dummy = Spyland(lvl=20)
+dummy.generate_skills()
 
-test = test.get_exp(1500)
-
-print(test.battle_stats())
-print('--------------------------------------')
-
-test = test.get_exp(2000)
-
-print(test.battle_stats())
-print('--------------------------------------')
+battle = Battle(None, [test], None, [dummy])
+print(battle.print())
