@@ -1,7 +1,6 @@
-from typing import Union
-import sqlite3
 import logging
-
+import sqlite3
+from typing import Union
 
 logging.basicConfig(
     filename='game-lib.log',
@@ -20,7 +19,7 @@ def clamp(minimum: float, maximum: float, value: Union[int, float],
     return value
 
 
-con = sqlite3.connect("lib.db")
+con = sqlite3.connect("databases/lib.db")
 cur = con.cursor()
 
 

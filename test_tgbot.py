@@ -1,76 +1,128 @@
-# !/usr/bin/env python
-# pylint: disable=C0116,W0613
-# This program is dedicated to the public domain under the CC0 license.
-
-"""
-Simple Bot to reply to Telegram messages.
-First, a few handler functions are defined. Then, those functions are passed to
-the Dispatcher and registered at their respective places.
-Then, the bot is started and runs until we press Ctrl-C on the command line.
-Usage:
-Basic Echobot example, repeats messages.
-Press Ctrl-C on the command line or send a signal to the process to stop the
-bot.
-"""
-
 import logging
+import sqlite3
 
-from telegram import Update, ForceReply
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
-from telegram import ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler
 
-# Enable logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
 
 logger = logging.getLogger(__name__)
+CONNECTION = sqlite3.connect("databases/users.db", check_same_thread=False)
+CURSOR = CONNECTION.cursor()
+user_id = 0
+username = ''
+is_authorised = False
 
-# Define a few command handlers. These usually take the two arguments update and
-# context.
+
+# устанавливаем текущие данные пользователя
+def set_user_data(id, name):
+    global user_id, username
+    user_id = id
+    username = name
 
 
+# проверяем существует ли такой пользователь в базе
+def check_user(update: Update, context: CallbackContext, user_id):
+    global is_authorised
+    try:
+        request = f"""SELECT * FROM ids WHERE user_id = {user_id}"""
+        result = CURSOR.execute(request).fetchone()
+        if result:
+            is_authorised = True
+            set_user_data(update.message.from_user.id, update.message.from_user.username)
+            return True
+        else:
+            return False
+    except:
+        update.message.reply_text('Произошла ошибка при авторизации, повторите ошибку позже.')
+
+
+# добавляем пользователя в бд
+def add_user(update: Update, context: CallbackContext) -> None:
+    global is_authorised
+    query = update.callback_query
+    if query.data == '1':
+        try:
+            request = f"""INSERT INTO ids VALUES(?, ?)"""
+            CURSOR.execute(request, (user_id, username,))
+            CONNECTION.commit()
+            query.edit_message_text("Вы успешно зарегистрировались. Вы можете продолжать")
+            is_authorised = True
+        except Exception as exception:
+            print(exception)
+            query.edit_message_text('Произошла ошибка при регистрации пользователя. Повторите ошибку позже.')
+    else:
+        query.edit_message_text('Ну нет так нет.')
+
+
+# удаляем пользователя из бд
+def delete_user(update: Update, context: CallbackContext):
+    global is_authorised, user_id, username
+    try:
+        request = f'''DELETE FROM ids WHERE user_id = {user_id}'''
+        CURSOR.execute(request)
+        CONNECTION.commit()
+        update.message.reply_text(f'Пользователь удалён')
+        is_authorised = False
+        user_id = 0
+        username = ''
+    except Exception as exception:
+        print(exception)
+        update.message.reply_text('Произошла ошибка при удалении пользователя, повторите ошибку позже.')
+
+
+# Начальная функция. Проверяет есть ли аккаунт или нет, регистрация
 def start(update: Update, context: CallbackContext) -> None:
-    """Send a message when the command /start is issued."""
-    user = update.effective_user
-    update.message.reply_markdown_v2(
-        fr'Hi {user.mention_markdown_v2()}\!',
-        reply_markup=ForceReply(selective=True),
-    )
+    global user_id, username, is_authorised
+    print(update.message.from_user.id)
     print(update.message.from_user.username)
+    update.message.reply_text('Добро пожаловать. Для начала пройдите авторизацию.')
+    user_id = update.message.from_user.id
+    username = update.message.from_user.username
+    if check_user(update=update, context=context, user_id=user_id):
+        update.message.reply_text('У вас уже есть аккаунт. Вы можете продолжать')
+        is_authorised = True
+    else:
+        registration_answer = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("Да", callback_data='1'),
+                InlineKeyboardButton("Нет", callback_data='2'),
+            ],
+        ])
+        update.message.reply_text('У вас ещё нет аккаунта. Хотите зарегистрироваться', reply_markup=registration_answer)
+        #     update.message.reply_text("Вы успешно зарегистрировались. Вы можете продолжать")
 
 
-def help_command(update: Update, context: CallbackContext) -> None:
-    """Send a message when the command /help is issued."""
-    update.message.reply_text('Help!')
+# Вывод информации об игре
+def info(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text('Это игра')
 
 
-def echo(update: Update, context: CallbackContext) -> None:
-    """Echo the user message."""
-    update.message.reply_text(update.message.text)
+# Вывод данных о пользователе(больше для дебага)
+def profile(update: Update, context: CallbackContext):
+    check_user(update=update, context=context, user_id=update.message.from_user.id)
+    if is_authorised:
+        update.message.reply_text(f'user_id: {user_id}\n'
+                                  f'username: {username}')
+    else:
+        update.message.reply_text('Вы не авторизованы')
 
 
 def main() -> None:
-    """Start the bot."""
-    # Create the Updater and pass it your bot's token.
     updater = Updater("5278816766:AAFWnPxEguubVCXlGw9k8shgz_-0aroopq0")
 
-    # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher
 
-    # on different commands - answer in Telegram
     dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("help", help_command))
+    dispatcher.add_handler(CommandHandler("info", info))
+    dispatcher.add_handler(CommandHandler("profile", profile))
+    dispatcher.add_handler(CommandHandler("delete_account", delete_user))
+    updater.dispatcher.add_handler(CallbackQueryHandler(add_user))
 
-    # on non command i.e message - echo the message on Telegram
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
-
-    # Start the Bot
     updater.start_polling()
 
-    # Run the bot until you press Ctrl-C or the process receives SIGINT,
-    # SIGTERM or SIGABRT. This should be used most of the time, since
-    # start_polling() is non-blocking and will stop the bot gracefully.
     updater.idle()
 
 
