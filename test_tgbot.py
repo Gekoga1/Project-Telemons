@@ -1,5 +1,6 @@
 import logging
 import sqlite3
+from game_lib import result1, result2, result3, result4
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler
@@ -128,6 +129,12 @@ def profile(update: Update, context: CallbackContext):
     else:
         update.message.reply_text('Вы не авторизованы')
 
+def show_game_example(update: Update, context: CallbackContext):
+    update.message.reply_text(result1)
+    update.message.reply_text(result2)
+    update.message.reply_text(result3)
+    update.message.reply_text(result4)
+
 
 def main() -> None:
     updater = Updater("5278816766:AAFWnPxEguubVCXlGw9k8shgz_-0aroopq0")
@@ -137,6 +144,7 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("info", info))
     dispatcher.add_handler(CommandHandler("profile", profile))
+    dispatcher.add_handler(CommandHandler("show", show_game_example))
     dispatcher.add_handler(CommandHandler("delete_account", delete_user_suggestion))
     updater.dispatcher.add_handler(CallbackQueryHandler(check_query))
 

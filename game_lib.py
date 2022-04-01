@@ -144,11 +144,10 @@ class Monster_Template:
 
 
 test = Monster_Template(1, shiny=True)
-print(test)
-print(test.battle_stats())
+result1 = test.battle_stats()
 test.get_exp(100)
-print(test.battle_stats())
+result2 = test.battle_stats()
 test.get_exp(1000)
-print(test.battle_stats())
+result3 = test.battle_stats()
 test.get_exp(-200)
-print(test.battle_stats())
+result4 = test.battle_stats()
