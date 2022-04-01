@@ -1,34 +1,35 @@
 import logging
 import sqlite3
-from game_lib import result1, result2, result3, result4
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler
+
+from game_lib import result1, result2, result3, result4
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
 
 logger = logging.getLogger(__name__)
-CONNECTION = sqlite3.connect("databases/users.db", check_same_thread=False)
+CONNECTION = sqlite3.connect("databases/data.db", check_same_thread=False)
 CURSOR = CONNECTION.cursor()
-user_id = 0
+id = 0
 username = ''
 is_authorised = False
 
 
 # устанавливаем текущие данные пользователя
-def set_user_data(id, name):
-    global user_id, username
-    user_id = id
+def set_user_data(user_id, name):
+    global id, username
+    id = user_id
     username = name
 
 
 # проверяем существует ли такой пользователь в базе
-def check_user(update: Update, context: CallbackContext, user_id):
+def check_user(update: Update, context: CallbackContext, id):
     global is_authorised
     try:
-        request = f"""SELECT * FROM ids WHERE user_id = {user_id}"""
+        request = f"""SELECT * FROM users WHERE id = {id}"""
         result = CURSOR.execute(request).fetchone()
         if result:
             is_authorised = True
@@ -39,11 +40,13 @@ def check_user(update: Update, context: CallbackContext, user_id):
     except:
         update.message.reply_text('Произошла ошибка при авторизации, повторите ошибку позже.')
 
+
+# добавляем пользователя в бд
 def add_user(query):
     global is_authorised
     try:
-        request = f"""INSERT INTO ids VALUES(?, ?)"""
-        CURSOR.execute(request, (user_id, username,))
+        request = f"""INSERT INTO users VALUES(?, ?)"""
+        CURSOR.execute(request, (id, username,))
         CONNECTION.commit()
         query.edit_message_text("Вы успешно зарегистрировались. Вы можете продолжать")
         is_authorised = True
@@ -52,7 +55,7 @@ def add_user(query):
         query.edit_message_text('Произошла ошибка при регистрации пользователя. Повторите ошибку позже.')
 
 
-# добавляем пользователя в бд
+# обработка нажатий inline buttons
 def check_query(update: Update, context: CallbackContext) -> None:
     global is_authorised
     query = update.callback_query
@@ -66,6 +69,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
         query.edit_message_text('Процесс удаления пользователя отменён')
 
 
+# Предложение удалить пользователя
 def delete_user_suggestion(update: Update, context: CallbackContext):
     delete_user_answer = InlineKeyboardMarkup([
         [
@@ -79,14 +83,14 @@ def delete_user_suggestion(update: Update, context: CallbackContext):
 
 # удаляем пользователя из бд
 def delete_user(query):
-    global is_authorised, user_id, username
+    global is_authorised, id, username
     try:
-        request = f'''DELETE FROM ids WHERE user_id = {user_id}'''
+        request = f'''DELETE FROM users WHERE id = {id}'''
         CURSOR.execute(request)
         CONNECTION.commit()
         query.edit_message_text(f'Пользователь удалён')
         is_authorised = False
-        user_id = 0
+        id = 0
         username = ''
     except Exception as exception:
         print(exception)
@@ -95,13 +99,13 @@ def delete_user(query):
 
 # Начальная функция. Проверяет есть ли аккаунт или нет, регистрация
 def start(update: Update, context: CallbackContext) -> None:
-    global user_id, username, is_authorised
+    global id, username, is_authorised
     print(update.message.from_user.id)
     print(update.message.from_user.username)
     update.message.reply_text('Добро пожаловать. Для начала пройдите авторизацию.')
-    user_id = update.message.from_user.id
+    id = update.message.from_user.id
     username = update.message.from_user.username
-    if check_user(update=update, context=context, user_id=user_id):
+    if check_user(update=update, context=context, id=id):
         update.message.reply_text('У вас уже есть аккаунт. Вы можете продолжать')
         is_authorised = True
     else:
@@ -122,13 +126,15 @@ def info(update: Update, context: CallbackContext) -> None:
 
 # Вывод данных о пользователе(больше для дебага)
 def profile(update: Update, context: CallbackContext):
-    check_user(update=update, context=context, user_id=update.message.from_user.id)
+    check_user(update=update, context=context, id=update.message.from_user.id)
     if is_authorised:
-        update.message.reply_text(f'user_id: {user_id}\n'
+        update.message.reply_text(f'id: {id}\n'
                                   f'username: {username}')
     else:
         update.message.reply_text('Вы не авторизованы')
 
+
+# Пример функционала игры
 def show_game_example(update: Update, context: CallbackContext):
     update.message.reply_text(result1)
     update.message.reply_text(result2)
