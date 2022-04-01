@@ -38,39 +38,58 @@ def check_user(update: Update, context: CallbackContext, user_id):
     except:
         update.message.reply_text('Произошла ошибка при авторизации, повторите ошибку позже.')
 
+def add_user(query):
+    global is_authorised
+    try:
+        request = f"""INSERT INTO ids VALUES(?, ?)"""
+        CURSOR.execute(request, (user_id, username,))
+        CONNECTION.commit()
+        query.edit_message_text("Вы успешно зарегистрировались. Вы можете продолжать")
+        is_authorised = True
+    except Exception as exception:
+        print(exception)
+        query.edit_message_text('Произошла ошибка при регистрации пользователя. Повторите ошибку позже.')
+
 
 # добавляем пользователя в бд
-def add_user(update: Update, context: CallbackContext) -> None:
+def check_query(update: Update, context: CallbackContext) -> None:
     global is_authorised
     query = update.callback_query
     if query.data == '1':
-        try:
-            request = f"""INSERT INTO ids VALUES(?, ?)"""
-            CURSOR.execute(request, (user_id, username,))
-            CONNECTION.commit()
-            query.edit_message_text("Вы успешно зарегистрировались. Вы можете продолжать")
-            is_authorised = True
-        except Exception as exception:
-            print(exception)
-            query.edit_message_text('Произошла ошибка при регистрации пользователя. Повторите ошибку позже.')
-    else:
+        add_user(query=query)
+    elif query.data == '2':
         query.edit_message_text('Ну нет так нет.')
+    elif query.data == '3':
+        delete_user(query=query)
+    else:
+        query.edit_message_text('Процесс удаления пользователя отменён')
+
+
+def delete_user_suggestion(update: Update, context: CallbackContext):
+    delete_user_answer = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("Да", callback_data='3'),
+            InlineKeyboardButton("Нет", callback_data='4'),
+        ],
+    ])
+    update.message.reply_text('Вы действительно хотите удалить свой профиль из базы данных?',
+                              reply_markup=delete_user_answer)
 
 
 # удаляем пользователя из бд
-def delete_user(update: Update, context: CallbackContext):
+def delete_user(query):
     global is_authorised, user_id, username
     try:
         request = f'''DELETE FROM ids WHERE user_id = {user_id}'''
         CURSOR.execute(request)
         CONNECTION.commit()
-        update.message.reply_text(f'Пользователь удалён')
+        query.edit_message_text(f'Пользователь удалён')
         is_authorised = False
         user_id = 0
         username = ''
     except Exception as exception:
         print(exception)
-        update.message.reply_text('Произошла ошибка при удалении пользователя, повторите ошибку позже.')
+        query.edit_message_text('Произошла ошибка при удалении пользователя, повторите ошибку позже.')
 
 
 # Начальная функция. Проверяет есть ли аккаунт или нет, регистрация
@@ -118,8 +137,8 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("info", info))
     dispatcher.add_handler(CommandHandler("profile", profile))
-    dispatcher.add_handler(CommandHandler("delete_account", delete_user))
-    updater.dispatcher.add_handler(CallbackQueryHandler(add_user))
+    dispatcher.add_handler(CommandHandler("delete_account", delete_user_suggestion))
+    updater.dispatcher.add_handler(CallbackQueryHandler(check_query))
 
     updater.start_polling()
 
