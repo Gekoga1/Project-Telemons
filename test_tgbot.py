@@ -16,6 +16,7 @@ CURSOR = CONNECTION.cursor()
 id = 0
 username = ''
 is_authorised = False
+confirm = ''
 
 
 # устанавливаем текущие данные пользователя
@@ -57,7 +58,7 @@ def add_user(query):
 
 # обработка нажатий inline buttons
 def check_query(update: Update, context: CallbackContext) -> None:
-    global is_authorised
+    global is_authorised, confirm
     query = update.callback_query
     if query.data == '1':
         add_user(query=query)
@@ -65,8 +66,20 @@ def check_query(update: Update, context: CallbackContext) -> None:
         query.edit_message_text('Ну нет так нет.')
     elif query.data == '3':
         delete_user(query=query)
-    else:
+    elif query.data == '4':
         query.edit_message_text('Процесс удаления пользователя отменён')
+    elif query.data == 'Yes':
+        pass
+    elif query.data == 'No':
+        query.edit_message_text('Грустно :( \n Вы можете заняться чем-нибудь другим, '
+                                'для того чтобы посмотреть список возможных команд отправьте команду /help')
+    elif query.data == 'Confirm':
+        confirm = True
+        query.edit_message_text('Введите новое имя')
+        change_name(update, context)
+    elif query.data == 'Not confirm':
+        confirm = False
+        query.edit_message_text('ну не меняй')  # должен быть переход в главное меню
 
 
 # Предложение удалить пользователя
@@ -128,10 +141,57 @@ def info(update: Update, context: CallbackContext) -> None:
 def profile(update: Update, context: CallbackContext):
     check_user(update=update, context=context, id=update.message.from_user.id)
     if is_authorised:
-        update.message.reply_text(f'id: {id}\n'
+        update.message.reply_text(f'Ваши данные\n\nid: {id}\n'
                                   f'username: {username}')
     else:
         update.message.reply_text('Вы не авторизованы')
+    confirm_changes(update, context)
+
+
+def get_user_id(username):
+    req = """SELECT id FROM users WHERE username = ?"""
+    res = CURSOR.execute(req, [username]).fetchone()
+    print(*res, 'get_user_id')
+    return res
+
+
+def get_username(user_id):
+    req = """SELECT username FROM users WHERE id = ?"""
+    res = CURSOR.execute(req, [user_id]).fetchone()
+    print(res, 'get_username')
+    return res
+
+
+def change_name(update: Update, context: CallbackContext):
+    print(123)
+    if confirm:
+        print(12341)
+        print(update.message.text, 'before')
+        new_name = update.message.text
+        print(update.message.text, 'after')
+        print(0)
+        req = """UPDATE users SET username = ? WHERE id = ?"""
+        user_id = get_user_id('update.message.text')
+        print(*user_id)
+        CONNECTION.execute(req, [new_name, *user_id])
+        print(2)
+        CONNECTION.commit()
+        print(3)
+        update.message.reply_text('Имя успешно изменено')
+
+
+def change_ability(update: Update, context: CallbackContext):
+    pass
+
+
+def confirm_changes(update: Update, context: CallbackContext):
+    confirm_ques = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton('Да', callback_data='Confirm'),
+            InlineKeyboardButton('Нет', callback_data='Not confirm')
+        ]
+    ])
+    update.message.reply_text('Хотите изменить данные?', reply_markup=confirm_ques)
 
 
 # Пример функционала игры
@@ -140,6 +200,20 @@ def show_game_example(update: Update, context: CallbackContext):
     update.message.reply_text(result2)
     update.message.reply_text(result3)
     update.message.reply_text(result4)
+
+
+def confirm_fight(update: Update, context: CallbackContext):     # подтверждение, что пользователь хочет начать бой
+    check_user(update=update, context=context, id=update.message.from_user.id)
+    if is_authorised:
+        confirm_answer = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton('Да', callback_data='Yes'),
+                InlineKeyboardButton('Нет', callback_data='No')
+            ]
+        ])
+        update.message.reply_text('Вы хотите начать бой?', reply_markup=confirm_answer)
+    else:
+        update.message.reply_text('Вы не авторизованы. Чтобы начать бой, нужно авторизоваться')
 
 
 def main() -> None:
@@ -152,6 +226,9 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("profile", profile))
     dispatcher.add_handler(CommandHandler("show", show_game_example))
     dispatcher.add_handler(CommandHandler("delete_account", delete_user_suggestion))
+    dispatcher.add_handler(CommandHandler("fight", confirm_fight))
+    dispatcher.add_handler(CommandHandler("change_name", change_name))
+    dispatcher.add_handler(CommandHandler("change_ability", change_ability))
     updater.dispatcher.add_handler(CallbackQueryHandler(check_query))
 
     updater.start_polling()
