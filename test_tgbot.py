@@ -2,7 +2,7 @@ import logging
 import sqlite3
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler
+from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler, Filters, MessageHandler
 
 from game_lib import result1, result2, result3, result4
 
@@ -61,6 +61,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
     global is_authorised, confirm
     query = update.callback_query
     if query.data == '1':
+        print(1)
         add_user(query=query)
     elif query.data == '2':
         query.edit_message_text('Ну нет так нет.')
@@ -71,8 +72,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'Yes':
         pass
     elif query.data == 'No':
-        query.edit_message_text('Грустно :( \n Вы можете заняться чем-нибудь другим, '
-                                'для того чтобы посмотреть список возможных команд отправьте команду /help')
+        query.edit_message_text('Грустно :(')
     elif query.data == 'Confirm':
         confirm = True
         query.edit_message_text('Введите новое имя')
@@ -80,6 +80,14 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'Not confirm':
         confirm = False
         query.edit_message_text('ну не меняй')  # должен быть переход в главное меню
+    elif query.data == 'nickname':
+        query.edit_message_text('Введите свой ник')
+        name = update.message.text
+        print(101)
+        set_name(name, query=query)
+    elif query.data == 'tg name':
+        name = query.from_user.username
+        set_name(name, query=query)
 
 
 # Предложение удалить пользователя
@@ -110,6 +118,14 @@ def delete_user(query):
         query.edit_message_text('Произошла ошибка при удалении пользователя, повторите ошибку позже.')
 
 
+def set_name(name, query):
+    print(123)
+    req = """INSERT INTO users VALUES(?, ?)"""
+    CURSOR.execute(req, (id, name,))
+    CONNECTION.commit()
+    query.edit_message_text(f'Твоё имя в игре {name}\nТы всегда можешь его изменить, вызвав команду /profile')
+
+
 # Начальная функция. Проверяет есть ли аккаунт или нет, регистрация
 def start(update: Update, context: CallbackContext) -> None:
     global id, username, is_authorised
@@ -117,18 +133,18 @@ def start(update: Update, context: CallbackContext) -> None:
     print(update.message.from_user.username)
     update.message.reply_text('Добро пожаловать. Для начала пройдите авторизацию.')
     id = update.message.from_user.id
-    username = update.message.from_user.username
+    # username = get_username(id)
     if check_user(update=update, context=context, id=id):
         update.message.reply_text('У вас уже есть аккаунт. Вы можете продолжать')
         is_authorised = True
     else:
-        registration_answer = InlineKeyboardMarkup([
+        name_ques = InlineKeyboardMarkup([
             [
-                InlineKeyboardButton("Да", callback_data='1'),
-                InlineKeyboardButton("Нет", callback_data='2'),
-            ],
+                InlineKeyboardButton('Да', callback_data='nickname'),
+                InlineKeyboardButton('Нет', callback_data='tg name')
+            ]
         ])
-        update.message.reply_text('У вас ещё нет аккаунта. Хотите зарегистрироваться', reply_markup=registration_answer)
+        update.message.reply_text('У вас ещё нет аккаунта, нужно его создать. Вы хотите ник?', reply_markup=name_ques)
         #     update.message.reply_text("Вы успешно зарегистрировались. Вы можете продолжать")
 
 
@@ -148,32 +164,31 @@ def profile(update: Update, context: CallbackContext):
     confirm_changes(update, context)
 
 
-def get_user_id(username):
+def get_user_id(username):  # получение id пользователя
     req = """SELECT id FROM users WHERE username = ?"""
-    res = CURSOR.execute(req, [username]).fetchone()
+    res = CURSOR.execute(req, username).fetchone()
     print(*res, 'get_user_id')
     return res
 
 
-def get_username(user_id):
+def get_username(user_id):  # получение имени пользователя
     req = """SELECT username FROM users WHERE id = ?"""
-    res = CURSOR.execute(req, [user_id]).fetchone()
+    res = CURSOR.execute(req, user_id).fetchone()
     print(res, 'get_username')
     return res
 
 
-def change_name(update: Update, context: CallbackContext):
+def change_name(update: Update, context):  # изменение имени
     print(123)
     if confirm:
         print(12341)
-        print(update.message.text, 'before')
         new_name = update.message.text
         print(update.message.text, 'after')
         print(0)
         req = """UPDATE users SET username = ? WHERE id = ?"""
         user_id = get_user_id('update.message.text')
         print(*user_id)
-        CONNECTION.execute(req, [new_name, *user_id])
+        CONNECTION.execute(req, (new_name, *user_id))
         print(2)
         CONNECTION.commit()
         print(3)
@@ -184,7 +199,7 @@ def change_ability(update: Update, context: CallbackContext):
     pass
 
 
-def confirm_changes(update: Update, context: CallbackContext):
+def confirm_changes(update: Update, context: CallbackContext):  # подтверждение изменений
     confirm_ques = InlineKeyboardMarkup([
         [
             InlineKeyboardButton('Да', callback_data='Confirm'),
@@ -202,7 +217,7 @@ def show_game_example(update: Update, context: CallbackContext):
     update.message.reply_text(result4)
 
 
-def confirm_fight(update: Update, context: CallbackContext):     # подтверждение, что пользователь хочет начать бой
+def confirm_fight(update: Update, context: CallbackContext):  # подтверждение, что пользователь хочет начать бой
     check_user(update=update, context=context, id=update.message.from_user.id)
     if is_authorised:
         confirm_answer = InlineKeyboardMarkup([
@@ -227,8 +242,10 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("show", show_game_example))
     dispatcher.add_handler(CommandHandler("delete_account", delete_user_suggestion))
     dispatcher.add_handler(CommandHandler("fight", confirm_fight))
-    dispatcher.add_handler(CommandHandler("change_name", change_name))
     dispatcher.add_handler(CommandHandler("change_ability", change_ability))
+
+    dispatcher.add_handler(MessageHandler(Filters.text, check_query))
+    dispatcher.add_handler(MessageHandler(Filters.text, change_name))
     updater.dispatcher.add_handler(CallbackQueryHandler(check_query))
 
     updater.start_polling()
