@@ -25,6 +25,30 @@ def set_user_data(user_id, name):
     username = name
 
 
+# обработка нажатий inline buttons
+def check_query(update: Update, context: CallbackContext) -> None:
+    global is_authorised
+    query = update.callback_query
+    if query.data == '1':
+        add_user(query=query)
+    elif query.data == '2':
+        query.edit_message_text('Ну нет так нет.')
+    elif query.data == '3':
+        delete_user(query=query)
+    else:
+        query.edit_message_text('Процесс удаления пользователя отменён')
+
+
+def make_database():
+    request = """CREATE TABLE users IF NOT EXISTS(
+    id       INT  NOT NULL
+                  UNIQUE,
+    username TEXT NOT NULL
+);"""
+    CURSOR.execute(request)
+    CONNECTION.commit()
+
+
 # проверяем существует ли такой пользователь в базе
 def check_user(update: Update, context: CallbackContext, id):
     global is_authorised
@@ -55,32 +79,6 @@ def add_user(query):
         query.edit_message_text('Произошла ошибка при регистрации пользователя. Повторите ошибку позже.')
 
 
-# обработка нажатий inline buttons
-def check_query(update: Update, context: CallbackContext) -> None:
-    global is_authorised
-    query = update.callback_query
-    if query.data == '1':
-        add_user(query=query)
-    elif query.data == '2':
-        query.edit_message_text('Ну нет так нет.')
-    elif query.data == '3':
-        delete_user(query=query)
-    else:
-        query.edit_message_text('Процесс удаления пользователя отменён')
-
-
-# Предложение удалить пользователя
-def delete_user_suggestion(update: Update, context: CallbackContext):
-    delete_user_answer = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("Да", callback_data='3'),
-            InlineKeyboardButton("Нет", callback_data='4'),
-        ],
-    ])
-    update.message.reply_text('Вы действительно хотите удалить свой профиль из базы данных?',
-                              reply_markup=delete_user_answer)
-
-
 # удаляем пользователя из бд
 def delete_user(query):
     global is_authorised, id, username
@@ -95,6 +93,18 @@ def delete_user(query):
     except Exception as exception:
         print(exception)
         query.edit_message_text('Произошла ошибка при удалении пользователя, повторите ошибку позже.')
+
+
+# Предложение удалить пользователя
+def delete_user_suggestion(update: Update, context: CallbackContext):
+    delete_user_answer = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("Да", callback_data='3'),
+            InlineKeyboardButton("Нет", callback_data='4'),
+        ],
+    ])
+    update.message.reply_text('Вы действительно хотите удалить свой профиль из базы данных?',
+                              reply_markup=delete_user_answer)
 
 
 # Начальная функция. Проверяет есть ли аккаунт или нет, регистрация
@@ -154,6 +164,7 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("delete_account", delete_user_suggestion))
     updater.dispatcher.add_handler(CallbackQueryHandler(check_query))
 
+    make_database()
     updater.start_polling()
 
     updater.idle()
