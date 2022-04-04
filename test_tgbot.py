@@ -2,7 +2,7 @@ import logging
 import sqlite3
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler, Filters, MessageHandler
+from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler, Filters, MessageHandler, ConversationHandler
 
 from game_lib import result1, result2, result3, result4
 
@@ -14,16 +14,15 @@ logger = logging.getLogger(__name__)
 CONNECTION = sqlite3.connect("databases/data.db", check_same_thread=False)
 CURSOR = CONNECTION.cursor()
 id = 0
-username = ''
+username : str
 is_authorised = False
-confirm = ''
 
 
 # устанавливаем текущие данные пользователя
 def set_user_data(user_id, name):
     global id, username
     id = user_id
-    username = name
+    username = get_username(user_id)
 
 
 # проверяем существует ли такой пользователь в базе
@@ -72,22 +71,30 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'Yes':
         pass
     elif query.data == 'No':
-        query.edit_message_text('Грустно :(')
+        query.edit_message_text('Грустно :(')   # должен быть переход в главное меню
     elif query.data == 'Confirm':
-        confirm = True
         query.edit_message_text('Введите новое имя')
         change_name(update, context)
     elif query.data == 'Not confirm':
-        confirm = False
         query.edit_message_text('ну не меняй')  # должен быть переход в главное меню
     elif query.data == 'nickname':
         query.edit_message_text('Введите свой ник')
-        name = update.message.text
-        print(101)
-        set_name(name, query=query)
-    elif query.data == 'tg name':
-        name = query.from_user.username
-        set_name(name, query=query)
+        nickname(update, context)
+    elif query.data == 'tg_name':
+        tg_name(update, context)
+
+
+def nickname(update: Update, context: CallbackContext):
+    name = update.message.text
+    set_name(name)
+    update.message.reply_text(f'Твоё имя в игре {name}\nТы всегда можешь его изменить, вызвав команду /profile')
+
+
+def tg_name(update: Update, context: CallbackContext):
+    query = update.callback_query
+    name = query.from_user.username
+    set_name(name)
+    query.edit_message_text(f'Твоё имя в игре {name}\nТы всегда можешь его изменить, вызвав команду /profile')
 
 
 # Предложение удалить пользователя
@@ -118,12 +125,10 @@ def delete_user(query):
         query.edit_message_text('Произошла ошибка при удалении пользователя, повторите ошибку позже.')
 
 
-def set_name(name, query):
-    print(123)
+def set_name(name):
     req = """INSERT INTO users VALUES(?, ?)"""
     CURSOR.execute(req, (id, name,))
     CONNECTION.commit()
-    query.edit_message_text(f'Твоё имя в игре {name}\nТы всегда можешь его изменить, вызвав команду /profile')
 
 
 # Начальная функция. Проверяет есть ли аккаунт или нет, регистрация
@@ -140,12 +145,11 @@ def start(update: Update, context: CallbackContext) -> None:
     else:
         name_ques = InlineKeyboardMarkup([
             [
-                InlineKeyboardButton('Да', callback_data='nickname'),
-                InlineKeyboardButton('Нет', callback_data='tg name')
+                InlineKeyboardButton('Придумать ник', callback_data='nickname'),
+                InlineKeyboardButton('Взять из телеграма', callback_data='tg_name')
             ]
         ])
         update.message.reply_text('У вас ещё нет аккаунта, нужно его создать. Вы хотите ник?', reply_markup=name_ques)
-        #     update.message.reply_text("Вы успешно зарегистрировались. Вы можете продолжать")
 
 
 # Вывод информации об игре
@@ -158,7 +162,7 @@ def profile(update: Update, context: CallbackContext):
     check_user(update=update, context=context, id=update.message.from_user.id)
     if is_authorised:
         update.message.reply_text(f'Ваши данные\n\nid: {id}\n'
-                                  f'username: {username}')
+                                  f'username: {get_username(id)}')
     else:
         update.message.reply_text('Вы не авторизованы')
     confirm_changes(update, context)
@@ -173,26 +177,19 @@ def get_user_id(username):  # получение id пользователя
 
 def get_username(user_id):  # получение имени пользователя
     req = """SELECT username FROM users WHERE id = ?"""
-    res = CURSOR.execute(req, user_id).fetchone()
-    print(res, 'get_username')
-    return res
+    res = CURSOR.execute(req, (user_id, )).fetchone()
+    return ''.join(res)
 
 
-def change_name(update: Update, context):  # изменение имени
+def change_name(update: Update, context: CallbackContext):
     print(123)
-    if confirm:
-        print(12341)
-        new_name = update.message.text
-        print(update.message.text, 'after')
-        print(0)
-        req = """UPDATE users SET username = ? WHERE id = ?"""
-        user_id = get_user_id('update.message.text')
-        print(*user_id)
-        CONNECTION.execute(req, (new_name, *user_id))
-        print(2)
-        CONNECTION.commit()
-        print(3)
-        update.message.reply_text('Имя успешно изменено')
+    name = update.message.text
+    print(321)
+    req = """UPDATE users SET username = ? WHERE id = ?"""
+    CURSOR.execute(req, (name, id,))
+    CONNECTION.commit()
+    print(5)
+    update.message.reply_text('Имя успешно изменено')
 
 
 def change_ability(update: Update, context: CallbackContext):
@@ -243,9 +240,9 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("delete_account", delete_user_suggestion))
     dispatcher.add_handler(CommandHandler("fight", confirm_fight))
     dispatcher.add_handler(CommandHandler("change_ability", change_ability))
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, nickname))
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, change_name))
 
-    dispatcher.add_handler(MessageHandler(Filters.text, check_query))
-    dispatcher.add_handler(MessageHandler(Filters.text, change_name))
     updater.dispatcher.add_handler(CallbackQueryHandler(check_query))
 
     updater.start_polling()
