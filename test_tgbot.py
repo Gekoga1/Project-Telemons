@@ -13,83 +13,106 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 CONNECTION = sqlite3.connect("databases/data.db", check_same_thread=False)
 CURSOR = CONNECTION.cursor()
-id = 0
-username = ''
-is_authorised = False
+
+
+# id = 0
+# username = ''
+# is_authorised = False
 
 
 # устанавливаем текущие данные пользователя
-def set_user_data(user_id, name):
-    global id, username
-    id = user_id
-    username = name
+# def set_user_data(user_id, name):
+#     global id, username
+#     id = user_id
+#     username = name
+
+def get_user_id(username):  # получение id пользователя
+    req = """SELECT id FROM users WHERE username = ?"""
+    res = CURSOR.execute(req, username).fetchone()
+    print(*res, 'get_user_id')
+    return res
+
+
+def get_username(user_id):  # получение имени пользователя
+    req = """SELECT username FROM users WHERE id = ?"""
+    res = CURSOR.execute(req, (user_id,)).fetchone()
+    return ''.join(res)
+
+
+def get_authorised(user_id):
+    req = """SELECT is_authorised FROM users WHERE id = ?"""
+    result = CURSOR.execute(req, (user_id,)).fetchone()
+    result = result[0]
+    if result == 1:
+        return True
+    return False
 
 
 # обработка нажатий inline buttons
 def check_query(update: Update, context: CallbackContext) -> None:
-    global is_authorised
     query = update.callback_query
     if query.data == 'registration_yes':
-        add_user(query=query)
+        add_user(update=update, context=context)
     elif query.data == 'registration_no':
         query.edit_message_text('Ну нет так нет.')
     elif query.data == 'delete_yes':
-        delete_user(query=query)
+        delete_user(update=update, context=context)
     else:
         query.edit_message_text('Процесс удаления пользователя отменён')
 
 
 def make_database():
-    request = """CREATE TABLE users IF NOT EXISTS(
-    id       INT  NOT NULL
-                  UNIQUE,
-    username TEXT NOT NULL
-);"""
+    request = """CREATE TABLE users (
+    id            INT     UNIQUE
+                          NOT NULL,
+    username      TEXT    NOT NULL,
+    is_authorised BOOLEAN NOT NULL
+);
+"""
     CURSOR.execute(request)
     CONNECTION.commit()
 
 
 # проверяем существует ли такой пользователь в базе
-def check_user(update: Update, context: CallbackContext, id):
-    global is_authorised
+def check_user(update: Update, context: CallbackContext):
     try:
+        id = update.effective_user.id
         request = f"""SELECT * FROM users WHERE id = {id}"""
         result = CURSOR.execute(request).fetchone()
         if result:
-            is_authorised = True
-            set_user_data(update.message.from_user.id, update.message.from_user.username)
             return True
         else:
             return False
-    except:
+    except Exception as exception:
+        print(exception)
         update.message.reply_text('Произошла ошибка при авторизации, повторите ошибку позже.')
 
 
 # добавляем пользователя в бд
-def add_user(query):
-    global is_authorised
+def add_user(update: Update, context: CallbackContext):
+    query = update.callback_query
     try:
-        request = f"""INSERT INTO users VALUES(?, ?)"""
-        CURSOR.execute(request, (id, username,))
+        id = update.effective_user.id
+        username = update.effective_user.username
+        request = f"""INSERT INTO users VALUES(?, ?, ?)"""
+        CURSOR.execute(request, (id, username, True))
         CONNECTION.commit()
         query.edit_message_text("Вы успешно зарегистрировались. Вы можете продолжать")
-        is_authorised = True
     except Exception as exception:
         print(exception)
         query.edit_message_text('Произошла ошибка при регистрации пользователя. Повторите ошибку позже.')
 
 
 # удаляем пользователя из бд
-def delete_user(query):
-    global is_authorised, id, username
+def delete_user(update: Update, context: CallbackContext):
+    query = update.callback_query
     try:
+        username = update.effective_user.username
+        id = get_user_id(username=username)
         request = f'''DELETE FROM users WHERE id = {id}'''
         CURSOR.execute(request)
         CONNECTION.commit()
         query.edit_message_text(f'Пользователь удалён')
-        is_authorised = False
-        id = 0
-        username = ''
     except Exception as exception:
         print(exception)
         query.edit_message_text('Произошла ошибка при удалении пользователя, повторите ошибку позже.')
@@ -109,15 +132,11 @@ def delete_user_suggestion(update: Update, context: CallbackContext):
 
 # Начальная функция. Проверяет есть ли аккаунт или нет, регистрация
 def start(update: Update, context: CallbackContext) -> None:
-    global id, username, is_authorised
-    print(update.message.from_user.id)
-    print(update.message.from_user.username)
+    print(update.effective_user.id)
+    print(update.effective_user.username)
     update.message.reply_text('Добро пожаловать. Для начала пройдите авторизацию.')
-    id = update.message.from_user.id
-    username = update.message.from_user.username
-    if check_user(update=update, context=context, id=id):
+    if check_user(update=update, context=context):
         update.message.reply_text('У вас уже есть аккаунт. Вы можете продолжать')
-        is_authorised = True
     else:
         registration_answer = InlineKeyboardMarkup([
             [
@@ -136,12 +155,17 @@ def info(update: Update, context: CallbackContext) -> None:
 
 # Вывод данных о пользователе(больше для дебага)
 def profile(update: Update, context: CallbackContext):
-    check_user(update=update, context=context, id=update.message.from_user.id)
-    if is_authorised:
+    check_user(update=update, context=context)
+    id = update.effective_user.id
+    username = update.effective_user.username
+    if get_authorised(user_id=id):
         update.message.reply_text(f'id: {id}\n'
-                                  f'username: {username}')
-    else:
-        update.message.reply_text('Вы не авторизованы')
+                                      f'username: {username}')
+    # if is_authorised:
+    #     update.message.reply_text(f'id: {id}\n'
+    #                               f'username: {username}')
+    # else:
+    #     update.message.reply_text('Вы не авторизованы')
 
 
 # Пример функционала игры
@@ -164,7 +188,7 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("delete_account", delete_user_suggestion))
     updater.dispatcher.add_handler(CallbackQueryHandler(check_query))
 
-    make_database()
+    # make_database()
     updater.start_polling()
 
     updater.idle()
