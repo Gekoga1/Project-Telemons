@@ -29,11 +29,11 @@ def set_user_data(user_id, name):
 def check_query(update: Update, context: CallbackContext) -> None:
     global is_authorised
     query = update.callback_query
-    if query.data == '1':
+    if query.data == 'registration_yes':
         add_user(query=query)
-    elif query.data == '2':
+    elif query.data == 'registration_no':
         query.edit_message_text('Ну нет так нет.')
-    elif query.data == '3':
+    elif query.data == 'delete_yes':
         delete_user(query=query)
     else:
         query.edit_message_text('Процесс удаления пользователя отменён')
@@ -99,8 +99,8 @@ def delete_user(query):
 def delete_user_suggestion(update: Update, context: CallbackContext):
     delete_user_answer = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("Да", callback_data='3'),
-            InlineKeyboardButton("Нет", callback_data='4'),
+            InlineKeyboardButton("Да", callback_data='delete_yes'),
+            InlineKeyboardButton("Нет", callback_data='delete_no'),
         ],
     ])
     update.message.reply_text('Вы действительно хотите удалить свой профиль из базы данных?',
@@ -121,8 +121,8 @@ def start(update: Update, context: CallbackContext) -> None:
     else:
         registration_answer = InlineKeyboardMarkup([
             [
-                InlineKeyboardButton("Да", callback_data='1'),
-                InlineKeyboardButton("Нет", callback_data='2'),
+                InlineKeyboardButton("Да", callback_data='registration_yes'),
+                InlineKeyboardButton("Нет", callback_data='registration_no'),
             ],
         ])
         update.message.reply_text('У вас ещё нет аккаунта. Хотите зарегистрироваться', reply_markup=registration_answer)
