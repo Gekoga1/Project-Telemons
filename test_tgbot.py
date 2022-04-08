@@ -1,9 +1,9 @@
 import logging
-import sqlite3
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler
 
+from database_manager import User
 from game_lib import result1, result2, result3, result4
 
 logging.basicConfig(
@@ -11,8 +11,6 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-CONNECTION = sqlite3.connect("databases/data.db", check_same_thread=False)
-CURSOR = CONNECTION.cursor()
 
 
 # id = 0
@@ -26,26 +24,10 @@ CURSOR = CONNECTION.cursor()
 #     id = user_id
 #     username = name
 
-def get_user_id(username):  # получение id пользователя
-    req = """SELECT id FROM users WHERE username = ?"""
-    res = CURSOR.execute(req, username).fetchone()
-    print(*res, 'get_user_id')
-    return res
 
-
-def get_username(user_id):  # получение имени пользователя
-    req = """SELECT username FROM users WHERE id = ?"""
-    res = CURSOR.execute(req, (user_id,)).fetchone()
-    return ''.join(res)
-
-
-def get_authorised(user_id):
-    req = """SELECT is_authorised FROM users WHERE id = ?"""
-    result = CURSOR.execute(req, (user_id,)).fetchone()
-    result = result[0]
-    if result == 1:
-        return True
-    return False
+def get_authorised(update: Update, context: CallbackContext):
+    id = update.effective_user.id
+    return database_manager.check_is_authorised(id=id)
 
 
 # обработка нажатий inline buttons
@@ -61,28 +43,22 @@ def check_query(update: Update, context: CallbackContext) -> None:
         query.edit_message_text('Процесс удаления пользователя отменён')
 
 
-def make_database():
-    request = """CREATE TABLE users (
-    id            INT     UNIQUE
-                          NOT NULL,
-    username      TEXT    NOT NULL,
-    is_authorised BOOLEAN NOT NULL
-);
-"""
-    CURSOR.execute(request)
-    CONNECTION.commit()
+# def process_message(update: Update, context: CallbackContext):
+#     """
+#     Обработчик текстовых сообщений
+#     """
+#     # Нам нужно обрабатывать только ввод слова во время создания комнаты, остальное делается кнопками
+#     if 'stage' not in context.chat_data or context.chat_data['stage'] != Stage.SELECT_WORD:
+#         return
+#
+#     select_word(update, context)
 
 
 # проверяем существует ли такой пользователь в базе
 def check_user(update: Update, context: CallbackContext):
     try:
         id = update.effective_user.id
-        request = f"""SELECT * FROM users WHERE id = {id}"""
-        result = CURSOR.execute(request).fetchone()
-        if result:
-            return True
-        else:
-            return False
+        return database_manager.check_user(id=id)
     except Exception as exception:
         print(exception)
         update.message.reply_text('Произошла ошибка при авторизации, повторите ошибку позже.')
@@ -94,9 +70,7 @@ def add_user(update: Update, context: CallbackContext):
     try:
         id = update.effective_user.id
         username = update.effective_user.username
-        request = f"""INSERT INTO users VALUES(?, ?, ?)"""
-        CURSOR.execute(request, (id, username, True))
-        CONNECTION.commit()
+        database_manager.add_user(id=id, username=username)
         query.edit_message_text("Вы успешно зарегистрировались. Вы можете продолжать")
     except Exception as exception:
         print(exception)
@@ -107,12 +81,9 @@ def add_user(update: Update, context: CallbackContext):
 def delete_user(update: Update, context: CallbackContext):
     query = update.callback_query
     try:
-        username = update.effective_user.username
-        id = get_user_id(username=username)
-        request = f'''DELETE FROM users WHERE id = {id}'''
-        CURSOR.execute(request)
-        CONNECTION.commit()
-        query.edit_message_text(f'Пользователь удалён')
+        id = update.effective_user.id
+        if database_manager.delete_user(id=id):
+            query.edit_message_text('Удаление прошло успешно')
     except Exception as exception:
         print(exception)
         query.edit_message_text('Произошла ошибка при удалении пользователя, повторите ошибку позже.')
@@ -129,23 +100,7 @@ def delete_user_suggestion(update: Update, context: CallbackContext):
     update.message.reply_text('Вы действительно хотите удалить свой профиль из базы данных?',
                               reply_markup=delete_user_answer)
 
-
-# Начальная функция. Проверяет есть ли аккаунт или нет, регистрация
-def start(update: Update, context: CallbackContext) -> None:
-    print(update.effective_user.id)
-    print(update.effective_user.username)
-    update.message.reply_text('Добро пожаловать. Для начала пройдите авторизацию.')
-    if check_user(update=update, context=context):
-        update.message.reply_text('У вас уже есть аккаунт. Вы можете продолжать')
-    else:
-        registration_answer = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("Да", callback_data='registration_yes'),
-                InlineKeyboardButton("Нет", callback_data='registration_no'),
-            ],
-        ])
-        update.message.reply_text('У вас ещё нет аккаунта. Хотите зарегистрироваться', reply_markup=registration_answer)
-        #     update.message.reply_text("Вы успешно зарегистрировались. Вы можете продолжать")
+    #     update.message.reply_text("Вы успешно зарегистрировались. Вы можете продолжать")
 
 
 # Вывод информации об игре
@@ -155,12 +110,11 @@ def info(update: Update, context: CallbackContext) -> None:
 
 # Вывод данных о пользователе(больше для дебага)
 def profile(update: Update, context: CallbackContext):
-    check_user(update=update, context=context)
     id = update.effective_user.id
     username = update.effective_user.username
-    if get_authorised(user_id=id):
+    if get_authorised(update=update, context=context):
         update.message.reply_text(f'id: {id}\n'
-                                      f'username: {username}')
+                                  f'username: {username}')
     # if is_authorised:
     #     update.message.reply_text(f'id: {id}\n'
     #                               f'username: {username}')
@@ -174,6 +128,41 @@ def show_game_example(update: Update, context: CallbackContext):
     update.message.reply_text(result2)
     update.message.reply_text(result3)
     update.message.reply_text(result4)
+
+
+def game_settings(update: Update, context: CallbackContext):
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("Изменить команду", callback_data='change_team'),
+            InlineKeyboardButton("Изменить свое имя в игре", callback_data='change_game_name'),
+        ],
+    ])
+    update.message.reply_text('Что вы хотите сделать?', reply_markup=keyboard)
+
+
+# Начальная функция. Проверяет есть ли аккаунт или нет, регистрация
+def start(update: Update, context: CallbackContext) -> None:
+    id = update.effective_user.id
+
+    update.message.reply_text('Добро пожаловать. Для начала пройдите авторизацию.')
+    if check_user(update=update, context=context):
+        update.message.reply_text('У вас уже есть аккаунт. Вы можете продолжать')
+        database_manager.is_authorised_abled(id=id)
+    else:
+        registration_answer = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("Да", callback_data='registration_yes'),
+                InlineKeyboardButton("Нет", callback_data='registration_no'),
+            ],
+        ])
+        update.message.reply_text('У вас ещё нет аккаунта. Хотите зарегистрироваться', reply_markup=registration_answer)
+
+
+def terminate(update: Update, context: CallbackContext):
+    id = update.effective_user.id
+
+    database_manager.connection.commit()
+    database_manager.is_authorised_disabled(id=id)
 
 
 def main() -> None:
@@ -195,4 +184,5 @@ def main() -> None:
 
 
 if __name__ == '__main__':
+    database_manager = User()
     main()
