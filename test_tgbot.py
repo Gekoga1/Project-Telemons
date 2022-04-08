@@ -5,6 +5,7 @@ from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQuery
 
 from database_manager import User
 from game_lib import result1, result2, result3, result4
+from secrets import API_TOKEN
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
@@ -166,7 +167,7 @@ def terminate(update: Update, context: CallbackContext):
 
 
 def main() -> None:
-    updater = Updater("5278816766:AAFWnPxEguubVCXlGw9k8shgz_-0aroopq0")
+    updater = Updater(API_TOKEN)
 
     dispatcher = updater.dispatcher
 

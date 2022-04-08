@@ -57,7 +57,7 @@ class User:
     def check_is_authorised(self, id):
         try:
             request = """SELECT is_authorised FROM users WHERE id = ?"""
-            result = self.cursor.execute(request, (id, )).fetchone()
+            result = self.cursor.execute(request, (id,)).fetchone()
             result = result[0]
             if result == 1:
                 return True
@@ -69,7 +69,7 @@ class User:
     def is_authorised_disabled(self, id):
         try:
             request = """UPDATE users SET is_authorised = 0 WHERE id = ?"""
-            self.cursor.execute(request, (id, ))
+            self.cursor.execute(request, (id,))
             self.connection.commit()
             return True
         except Exception as exception:
@@ -79,7 +79,7 @@ class User:
     def is_authorised_abled(self, id):
         try:
             request = """UPDATE users SET is_authorised = 1 WHERE id = ?"""
-            self.cursor.execute(request, (id, ))
+            self.cursor.execute(request, (id,))
             self.connection.commit()
             return True
         except Exception as exception:
