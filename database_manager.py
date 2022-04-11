@@ -54,6 +54,16 @@ class User:
             print(exception)
             return False
 
+    def change_user_nickname(self, nickname, id):
+        try:
+            request = f'''UPDATE users SET game_name = ? WHERE id = ?'''
+            self.cursor.execute(request, (nickname, id,))
+            self.connection.commit()
+            return True
+        except Exception as exception:
+            print(exception)
+            return False
+
     def check_is_authorised(self, id):
         try:
             request = """SELECT is_authorised FROM users WHERE id = ?"""

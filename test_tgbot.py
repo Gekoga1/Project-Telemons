@@ -40,8 +40,10 @@ def check_query(update: Update, context: CallbackContext) -> None:
         query.edit_message_text('Ну нет так нет.')
     elif query.data == 'delete_yes':
         delete_user(update=update, context=context)
+    elif query.data == 'change_game_name':
+        propose_change_user_nickname(update=update, context=context, query=query)
     else:
-        query.edit_message_text('Процесс удаления пользователя отменён')
+        query.edit_message_text('Процесс отменён')
 
 
 # def process_message(update: Update, context: CallbackContext):
@@ -104,6 +106,27 @@ def delete_user_suggestion(update: Update, context: CallbackContext):
     #     update.message.reply_text("Вы успешно зарегистрировались. Вы можете продолжать")
 
 
+def propose_change_user_nickname(update: Update, context: CallbackContext, query):
+    query.edit_message_text('Введите функцию формата\n/change_name <новый ник>')
+
+
+def change_user_nickname(update: Update, context: CallbackContext):
+    id = update.effective_user.id
+    message = update.message.text
+    message_list = message.split()
+    if len(message_list) <= 1:
+        update.message.reply_text('Вы не ввели ник!')
+    elif len(message_list) > 2:
+        update.message.reply_text("Слишком много ников, введите только 1")
+    else:
+        nickname = message_list[1]
+        if database_manager.change_user_nickname(nickname=nickname, id=id):
+            update.message.reply_text("Ник изменён")
+        else:
+            update.message.reply_text("Ошибка при изменении ника, повторите ошибку позже")
+
+
+
 # Вывод информации об игре
 def info(update: Update, context: CallbackContext) -> None:
     update.message.reply_text('Это игра')
@@ -134,7 +157,7 @@ def show_game_example(update: Update, context: CallbackContext):
 def game_settings(update: Update, context: CallbackContext):
     keyboard = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("Изменить команду", callback_data='change_team'),
+
             InlineKeyboardButton("Изменить свое имя в игре", callback_data='change_game_name'),
         ],
     ])
@@ -176,6 +199,8 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("profile", profile))
     dispatcher.add_handler(CommandHandler("show", show_game_example))
     dispatcher.add_handler(CommandHandler("delete_account", delete_user_suggestion))
+    dispatcher.add_handler(CommandHandler("change_name", change_user_nickname))
+    dispatcher.add_handler(CommandHandler("game_settings", game_settings))
     updater.dispatcher.add_handler(CallbackQueryHandler(check_query))
 
     # make_database()
