@@ -44,7 +44,6 @@ def check_query(update: Update, context: CallbackContext) -> None:
         propose_change_user_nickname(update=update, context=context, query=query)
     elif query.data == 'delete_no':
         query.edit_message_text('Процесс отменён')
-        main_menu(update, context)
     elif query.data == 'nickname':
         query.edit_message_text('Введите свой ник')
         nickname(update, context)
