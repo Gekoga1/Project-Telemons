@@ -22,7 +22,7 @@ class User:
         except Exception as exception:
             print(exception)
 
-    def add_user(self, id, username, game_name=None):
+    def add_user(self, id, username, game_name):
         try:
             request = f"""INSERT INTO users VALUES(?, ?, ?, ?)"""
             self.cursor.execute(request, (id, username, game_name, True,))
@@ -98,3 +98,8 @@ class User:
 
     def update_user_gamename(self, name):
         pass
+
+    def get_gamename(self, user_id):
+        req = """SELECT game_name FROM users WHERE id = ?"""
+        res = self.cursor.execute(req, (user_id,)).fetchone()
+        return ''.join(res)

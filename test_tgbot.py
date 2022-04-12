@@ -1,7 +1,7 @@
 import logging
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler
+from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler, MessageHandler, Filters
 
 from database_manager import User
 from game_lib import result1, result2, result3, result4
@@ -35,15 +35,58 @@ def get_authorised(update: Update, context: CallbackContext):
 def check_query(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     if query.data == 'registration_yes':
-        add_user(update=update, context=context)
+        nickname_or_tgname(update, context)
     elif query.data == 'registration_no':
         query.edit_message_text('Ну нет так нет.')
     elif query.data == 'delete_yes':
         delete_user(update=update, context=context)
     elif query.data == 'change_game_name':
         propose_change_user_nickname(update=update, context=context, query=query)
-    else:
+    elif query.data == 'delete_no':
         query.edit_message_text('Процесс отменён')
+        main_menu(update, context)
+    elif query.data == 'nickname':
+        query.edit_message_text('Введите свой ник')
+        nickname(update, context)
+    elif query.data == 'tg_name':
+        tg_name(update, context)
+
+
+def nickname_or_tgname(update: Update, context: CallbackContext):
+    query = update.callback_query
+    name_ques = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton('Придумать ник', callback_data='nickname'),
+            InlineKeyboardButton('Взять из телеграма', callback_data='tg_name')
+        ]
+    ])
+    query.edit_message_text('Вы хотите придумать ник?', reply_markup=name_ques)
+
+
+def nickname(update: Update, context: CallbackContext):
+    name = update.message.text
+    add_user(update, context, name)
+    update.message.reply_text(f"Вы успешно зарегистрировались.\n\nВаше имя в игре {name}\n"
+                              f"Вы всегда можете его изменить, вызвав команду /game_settings\n\n"
+                              f"Чтобы выйти в главное меню, введите команду /main_menu")
+
+
+def tg_name(update: Update, context: CallbackContext):
+    query = update.callback_query
+    name = update.effective_user.username
+    add_user(update, context, name)
+    query.edit_message_text(f"Вы успешно зарегистрировались.\n\nВаше имя в игре {name}\n"
+                              f"Вы всегда можете его изменить, вызвав команду /game_settings\n\n"
+                            f"Чтобы выйти в главное меню, введите команду /main_menu")
+
+
+def main_menu(update: Update, context: CallbackContext):
+    id = update.effective_user.id
+    if get_authorised(update=update, context=context):
+        update.message.reply_text(f'Добро пожаловать в игру, {database_manager.get_gamename(id)}!\n\n'
+                                  f'Чем хотите заняться?\n -выбор боёв, редактирование монстров-')
+    else:
+        update.message.reply_text('Вы не авторизованы, чтобы играть нужно авторизоваться.')
 
 
 # def process_message(update: Update, context: CallbackContext):
@@ -64,20 +107,19 @@ def check_user(update: Update, context: CallbackContext):
         return database_manager.check_user(id=id)
     except Exception as exception:
         print(exception)
-        update.message.reply_text('Произошла ошибка при авторизации, повторите ошибку позже.')
+        update.message.reply_text('Произошла ошибка при авторизации, повторите попытку позже.')
 
 
 # добавляем пользователя в бд
-def add_user(update: Update, context: CallbackContext):
-    query = update.callback_query
+def add_user(update: Update, context: CallbackContext, nickname):
+    # query = update.callback_query
     try:
         id = update.effective_user.id
         username = update.effective_user.username
-        database_manager.add_user(id=id, username=username)
-        query.edit_message_text("Вы успешно зарегистрировались. Вы можете продолжать")
+        database_manager.add_user(id=id, username=username, game_name=nickname)
     except Exception as exception:
         print(exception)
-        query.edit_message_text('Произошла ошибка при регистрации пользователя. Повторите ошибку позже.')
+        update.message.reply_text('Произошла ошибка при регистрации пользователя. Повторите попытку позже.')
 
 
 # удаляем пользователя из бд
@@ -89,7 +131,7 @@ def delete_user(update: Update, context: CallbackContext):
             query.edit_message_text('Удаление прошло успешно')
     except Exception as exception:
         print(exception)
-        query.edit_message_text('Произошла ошибка при удалении пользователя, повторите ошибку позже.')
+        query.edit_message_text('Произошла ошибка при удалении пользователя, повторите попытку позже.')
 
 
 # Предложение удалить пользователя
@@ -123,8 +165,7 @@ def change_user_nickname(update: Update, context: CallbackContext):
         if database_manager.change_user_nickname(nickname=nickname, id=id):
             update.message.reply_text("Ник изменён")
         else:
-            update.message.reply_text("Ошибка при изменении ника, повторите ошибку позже")
-
+            update.message.reply_text("Ошибка при изменении ника, повторите попытку позже")
 
 
 # Вывод информации об игре
@@ -135,10 +176,9 @@ def info(update: Update, context: CallbackContext) -> None:
 # Вывод данных о пользователе(больше для дебага)
 def profile(update: Update, context: CallbackContext):
     id = update.effective_user.id
-    username = update.effective_user.username
     if get_authorised(update=update, context=context):
         update.message.reply_text(f'id: {id}\n'
-                                  f'username: {username}')
+                                  f'username: {database_manager.get_gamename(id)}')
     # if is_authorised:
     #     update.message.reply_text(f'id: {id}\n'
     #                               f'username: {username}')
@@ -172,6 +212,7 @@ def start(update: Update, context: CallbackContext) -> None:
     if check_user(update=update, context=context):
         update.message.reply_text('У вас уже есть аккаунт. Вы можете продолжать')
         database_manager.is_authorised_abled(id=id)
+        main_menu(update, context)
     else:
         registration_answer = InlineKeyboardMarkup([
             [
@@ -201,6 +242,8 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("delete_account", delete_user_suggestion))
     dispatcher.add_handler(CommandHandler("change_name", change_user_nickname))
     dispatcher.add_handler(CommandHandler("game_settings", game_settings))
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, nickname))
+    dispatcher.add_handler(CommandHandler("main_menu", main_menu))
     updater.dispatcher.add_handler(CallbackQueryHandler(check_query))
 
     # make_database()
