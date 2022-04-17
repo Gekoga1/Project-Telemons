@@ -3,6 +3,7 @@ import logging
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler, MessageHandler, Filters
 
+from Room import Room, Stage
 from database_manager import User
 from game_lib import result1, result2, result3, result4
 from secrets import API_TOKEN
@@ -12,6 +13,7 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+rooms = {}
 
 
 # id = 0
@@ -46,9 +48,27 @@ def check_query(update: Update, context: CallbackContext) -> None:
         query.edit_message_text('Процесс отменён')
     elif query.data == 'nickname':
         query.edit_message_text('Введите свой ник')
-        nickname(update, context)
+        nickname_settings(update, context)
     elif query.data == 'tg_name':
-        tg_name(update, context)
+        registration_success(update, context)
+    elif query.data == 'game_settings':
+        game_settings(update=update, context=context)
+    elif query.data == 'choose_type_fight':
+        choose_type_fight(update=update, context=context)
+    elif query.data == 'PVP':
+        fight_PVP(update=update, context=context)
+    elif query.data == 'join_room':
+        join_room(update, context)
+        context.chat_data['stage'] = Stage.SELECT_ROOM
+        # нажата кнопка создать комнату
+    elif query.data == 'create_room':
+        create_room(update, context)
+        context.chat_data['stage'] = Stage.SELECT_DIFFICULTY
+    elif query.data in rooms.keys():
+        select_room(update, context)
+        context.chat_data['stage'] = Stage.PLAYING_GAME
+    else:
+        update.message.reply_text('Я вас не понимаю, повторите попытку ввода.')
 
 
 def nickname_or_tgname(update: Update, context: CallbackContext):
@@ -62,7 +82,61 @@ def nickname_or_tgname(update: Update, context: CallbackContext):
     query.edit_message_text('Вы хотите придумать ник?', reply_markup=name_ques)
 
 
-def nickname(update: Update, context: CallbackContext):
+def choose_type_fight(update: Update, context: CallbackContext):
+    query = update.callback_query
+    fights = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton('PVP', callback_data='PVP'),
+        ]
+    ])
+    query.edit_message_text('Выберите тип сражения', reply_markup=fights)
+
+
+def fight_PVP(update: Update, context: CallbackContext):
+    if len(rooms):
+        join_room(update=update, context=context)
+    else:
+        create_room(update=update, context=context)
+
+
+def create_room(update: Update, context: CallbackContext) -> None:
+    query = update.callback_query
+    user = update.effective_user
+    room = Room()
+    room.author_id = user.id
+    room.room_name = user.username
+    context.chat_data['create_room'] = room
+
+    room: Room = context.chat_data['create_room']
+
+    rooms[room.room_name] = room
+    del context.chat_data['create_room']
+    context.chat_data['stage'] = Stage.HOSTING_GAME
+    query.edit_message_text(text='Комната была создана, ждите пользователей')
+
+
+def join_room(update: Update, context: CallbackContext) -> None:
+    buttons = []
+    for roomKey in rooms:
+        buttons.append(InlineKeyboardButton(rooms[roomKey].room_name, callback_data=rooms[roomKey].room_name))
+    keyboard = [buttons]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    query = update.callback_query
+    query.edit_message_text(text='Выберите комнату', reply_markup=reply_markup)
+
+
+def select_room(update: Update, context: CallbackContext) -> None:
+    context.chat_data['roomName'] = update.callback_query.data
+    show_room(update=update, context=context)
+
+
+def show_room(update: Update, context: CallbackContext) -> None:
+    query = update.callback_query
+
+    query.edit_message_text(text=f'Проверка проверка, это комната {context.chat_data["roomName"]}')
+
+
+def nickname_settings(update: Update, context: CallbackContext):
     name = update.message.text
     add_user(update, context, name)
     update.message.reply_text(f"Вы успешно зарегистрировались.\n\nВаше имя в игре {name}\n"
@@ -70,20 +144,30 @@ def nickname(update: Update, context: CallbackContext):
                               f"Чтобы выйти в главное меню, введите команду /main_menu")
 
 
-def tg_name(update: Update, context: CallbackContext):
+def registration_success(update: Update, context: CallbackContext):
     query = update.callback_query
     name = update.effective_user.username
     add_user(update, context, name)
     query.edit_message_text(f"Вы успешно зарегистрировались.\n\nВаше имя в игре {name}\n"
-                              f"Вы всегда можете его изменить, вызвав команду /game_settings\n\n"
+                            f"Вы всегда можете его изменить, вызвав команду /game_settings\n\n"
                             f"Чтобы выйти в главное меню, введите команду /main_menu")
 
 
 def main_menu(update: Update, context: CallbackContext):
     id = update.effective_user.id
     if get_authorised(update=update, context=context):
-        update.message.reply_text(f'Добро пожаловать в игру, {database_manager.get_gamename(id)}!\n\n'
-                                  f'Чем хотите заняться?\n -выбор боёв, редактирование монстров-')
+        reply_markup = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("Выбор боёв", callback_data='choose_type_fight'),
+                InlineKeyboardButton("Редактирование команды", callback_data='customize_team'),
+            ],
+            [
+                InlineKeyboardButton('Настройки игры', callback_data='game_settings')
+            ]
+        ])
+        nickname = database_manager.get_gamename(id)
+        update.message.reply_text(f'Добро пожаловать в игру, {nickname}!\n\n'
+                                  f'Чем хотите заняться?', reply_markup=reply_markup)
     else:
         update.message.reply_text('Вы не авторизованы, чтобы играть нужно авторизоваться.')
 
@@ -194,13 +278,23 @@ def show_game_example(update: Update, context: CallbackContext):
 
 
 def game_settings(update: Update, context: CallbackContext):
-    keyboard = InlineKeyboardMarkup([
-        [
+    query = update.callback_query
+    if query is not None:
+        keyboard = InlineKeyboardMarkup([
+            [
 
-            InlineKeyboardButton("Изменить свое имя в игре", callback_data='change_game_name'),
-        ],
-    ])
-    update.message.reply_text('Что вы хотите сделать?', reply_markup=keyboard)
+                InlineKeyboardButton("Изменить свое имя в игре", callback_data='change_game_name'),
+            ],
+        ])
+        query.edit_message_text('Что вы хотите сделать?', reply_markup=keyboard)
+    else:
+        keyboard = InlineKeyboardMarkup([
+            [
+
+                InlineKeyboardButton("Изменить свое имя в игре", callback_data='change_game_name'),
+            ],
+        ])
+        update.message.reply_text('Что вы хотите сделать?', reply_markup=keyboard)
 
 
 # Начальная функция. Проверяет есть ли аккаунт или нет, регистрация
@@ -241,11 +335,10 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("delete_account", delete_user_suggestion))
     dispatcher.add_handler(CommandHandler("change_name", change_user_nickname))
     dispatcher.add_handler(CommandHandler("game_settings", game_settings))
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, nickname))
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, nickname_settings))
     dispatcher.add_handler(CommandHandler("main_menu", main_menu))
     updater.dispatcher.add_handler(CallbackQueryHandler(check_query))
 
-    # make_database()
     updater.start_polling()
 
     updater.idle()
