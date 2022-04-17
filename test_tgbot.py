@@ -112,7 +112,13 @@ def create_room(update: Update, context: CallbackContext) -> None:
     rooms[room.room_name] = room
     del context.chat_data['create_room']
     context.chat_data['stage'] = Stage.HOSTING_GAME
-    query.edit_message_text(text='Комната была создана, ждите пользователей')
+
+    reply_markup = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton('Список игр', callback_data='join_room'),
+        ]
+    ])
+    query.edit_message_text(text='Комната была создана, ждите пользователей', reply_markup=reply_markup)
 
 
 def join_room(update: Update, context: CallbackContext) -> None:
