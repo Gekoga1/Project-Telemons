@@ -15,6 +15,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 rooms = {}
 
+# основные состояния игрока
+NOTHING = 'nothing'
+MONSTER_NUM = 'monster_num'
+
 
 # id = 0
 # username = ''
@@ -36,6 +40,7 @@ def get_authorised(update: Update, context: CallbackContext):
 # обработка нажатий inline buttons
 def check_query(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
+    query.answer()
     if query.data == 'registration_yes':
         nickname_or_tgname(update, context)
     elif query.data == 'registration_no':
@@ -70,7 +75,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'monsters':
         team_or_collection(update, context)
     elif query.data == 'collection':
-        collection_info(update, context)
+        collection_info(update=update, context=context)
     elif query.data == 'team':
         team_info(update, context)
     elif query.data == 'change team':
@@ -81,6 +86,8 @@ def check_query(update: Update, context: CallbackContext) -> None:
         pass
     elif query.data == 'monster info':
         pass
+    elif query.data == 'main menu':
+        main_menu(update, context)
     else:
         update.message.reply_text('Я вас не понимаю, повторите попытку ввода.')
 
@@ -175,6 +182,7 @@ def registration_success(update: Update, context: CallbackContext):
 
 def main_menu(update: Update, context: CallbackContext):
     id = update.effective_user.id
+    query = update.callback_query
     if get_authorised(update=update, context=context):
         reply_markup = InlineKeyboardMarkup([
             [
@@ -186,8 +194,12 @@ def main_menu(update: Update, context: CallbackContext):
             ]
         ])
         nickname = database_manager.get_gamename(id)
-        update.message.reply_text(f'Добро пожаловать в игру, {nickname}!\n\n'
-                                  f'Чем хотите заняться?', reply_markup=reply_markup)
+        if query is None:
+            update.message.reply_text(f'Добро пожаловать в игру, {nickname}!\n\n'
+                                    f'Чем хотите заняться?', reply_markup=reply_markup)
+        else:
+            query.edit_message_text(f'Добро пожаловать в игру, {nickname}!\n\n'
+                                    f'Чем хотите заняться?', reply_markup=reply_markup)
     else:
         update.message.reply_text('Вы не авторизованы, чтобы играть нужно авторизоваться.')
 
@@ -204,37 +216,51 @@ def team_or_collection(update: Update, context: CallbackContext):
 
 
 def collection_info(update: Update, context: CallbackContext):
-    query = update.callback_query
-    query.edit_message_text('Здесь выводится вся коллекция монстров игрока')
+    update.callback_query.edit_message_text('Здесь выводится вся коллекция монстров игрока')
     # update.message.reply_text('Здесь выводится вся коллекция монстров игрока')
+    monster_choice(update=update, context=context)
+
+
+def monster_choice(update: Update, context: CallbackContext):
+    query = update.callback_query
+    user_id = update.effective_user.id
+    database_manager.set_state(MONSTER_NUM, user_id)
     try:
-        monster_num = get_monster_num(update, context)
-        # query.edit_message_text('Print num')
+        # update.message.reply_text('Введите номер монстра')
+        query.edit_message_text('Введите номер монстра')
+        monster_num = update.effective_message.text
+        # monster_num = get_monster_num(update, context)
+        database_manager.set_state(NOTHING, user_id)
+        print(monster_num)
         ques = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton('Заменить монстра', callback_data='change monster'),
-                InlineKeyboardButton('Посмотреть характеристики', callback_data='monster info')
-            ]
+        [
+            InlineKeyboardButton('Заменить монстра', callback_data='change monster'),
+            InlineKeyboardButton('Посмотреть характеристики', callback_data='monster info')
+        ],
+            InlineKeyboardButton('Вернуться в главное меню', callback_data='main menu')
         ])
-        update.message.reply_text(f'Вы выбрали монстра под номером {str(monster_num)}\n'
-                                  f'Что Вы хотите сделать?', reply_markup=ques)
+
+        # query.edit_message_text(f'Вы выбрали монстра под номером {str(monster_num)}\n'
+        #                         f'Что Вы хотите сделать?', reply_markup=ques)
     except Exception as ex:
         print(ex)
-        update.message.reply_text('Вы ввели не число, попробуйте ещё раз')
+        print('monster choice')
+        query.edit_message_text('Вы ввели не число, попробуйте ещё раз')
 
 
 def get_monster_num(update: Update, context: CallbackContext):
-    update.message.reply_text('Введите номер монстра')
     monster_num = update.message.text
+    print(monster_num)
+    update.message.reply_text('Number!')
     return monster_num
 
 
 def team_info(update: Update, context: CallbackContext):
-    update.message.reply_text('Здесь выводятся все монстры команды и их характеристики')
+    # update.message.reply_text('Здесь выводятся все монстры команды и их характеристики')
     change_ques = InlineKeyboardMarkup([
         [
             InlineKeyboardButton('Да', callback_data='change team'),
-            InlineKeyboardButton('Нет', callback_data='no')
+            InlineKeyboardButton('Нет', callback_data='main menu')
         ]
     ])
     update.message.reply_text('Вы хотите изменить команду?', reply_markup=change_ques)
@@ -243,21 +269,23 @@ def team_info(update: Update, context: CallbackContext):
 def change_team(update: Update, context: CallbackContext):
     try:
         monster_num = get_monster_num(update, context)
-        update.message.reply_text(f'Вы выбрали монстра под номером {str(monster_num)}')
+        # update.message.reply_text(f'Вы выбрали монстра под номером {str(monster_num)}')
     except Exception as ex:
         print(ex)
         update.message.reply_text('Вы ввели не число, попробуйте ещё раз')
 
 
-# def process_message(update: Update, context: CallbackContext):
-#     """
-#     Обработчик текстовых сообщений
-#     """
-#     # Нам нужно обрабатывать только ввод слова во время создания комнаты, остальное делается кнопками
-#     if 'stage' not in context.chat_data or context.chat_data['stage'] != Stage.SELECT_WORD:
-#         return
-#
-#     select_word(update, context)
+def process_message(update: Update, context: CallbackContext):
+    print(7)
+    if check_user(update, context) is False:
+        nickname_settings(update, context)
+    elif check_user(update, context) is True:
+        print(98)
+        state = database_manager.get_state(update.effective_user.id)
+        if state == MONSTER_NUM:
+            get_monster_num(update, context)
+        elif state == NOTHING:
+            return
 
 
 # проверяем существует ли такой пользователь в базе
@@ -407,9 +435,8 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("delete_account", delete_user_suggestion))
     dispatcher.add_handler(CommandHandler("change_name", change_user_nickname))
     dispatcher.add_handler(CommandHandler("game_settings", game_settings))
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, nickname_settings))
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, process_message))
     dispatcher.add_handler(CommandHandler("main_menu", main_menu))
-    dispatcher.add_handler(MessageHandler(Filters.text, get_monster_num))
     updater.dispatcher.add_handler(CallbackQueryHandler(check_query))
 
     updater.start_polling()
