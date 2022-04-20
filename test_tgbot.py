@@ -1,4 +1,5 @@
 import logging
+import random
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler, MessageHandler, Filters
@@ -39,7 +40,8 @@ def check_query(update: Update, context: CallbackContext) -> None:
     if query.data == 'registration_yes':
         nickname_or_tgname(update, context)
     elif query.data == 'registration_no':
-        query.edit_message_text('Ну нет так нет.')
+        query.edit_message_text('Ну нет так нет.\n'
+                                'Если надумаете, переходите по этой ссылке /start')
     elif query.data == 'delete_yes':
         delete_user(update=update, context=context)
     elif query.data == 'change_game_name':
@@ -63,7 +65,6 @@ def check_query(update: Update, context: CallbackContext) -> None:
         # нажата кнопка создать комнату
     elif query.data == 'create_room':
         create_room(update, context)
-        context.chat_data['stage'] = Stage.SELECT_DIFFICULTY
     elif query.data in rooms.keys():
         select_room(update, context)
         context.chat_data['stage'] = Stage.PLAYING_GAME
@@ -112,13 +113,16 @@ def create_room(update: Update, context: CallbackContext) -> None:
     rooms[room.room_name] = room
     del context.chat_data['create_room']
     context.chat_data['stage'] = Stage.HOSTING_GAME
+    room.count_players = 0
+    room.player_list = []
 
     reply_markup = InlineKeyboardMarkup([
         [
             InlineKeyboardButton('Список игр', callback_data='join_room'),
         ]
     ])
-    query.edit_message_text(text='Комната была создана, ждите пользователей', reply_markup=reply_markup)
+    query.edit_message_text(text='Подходящих комнат не нашлось, поэтому комната была создана, ждите пользователей',
+                            reply_markup=reply_markup)
 
 
 def join_room(update: Update, context: CallbackContext) -> None:
@@ -133,18 +137,68 @@ def join_room(update: Update, context: CallbackContext) -> None:
 
 def select_room(update: Update, context: CallbackContext) -> None:
     context.chat_data['roomName'] = update.callback_query.data
-    show_room(update=update, context=context)
+    room_name = context.chat_data['roomName']
+    room = rooms[room_name]
+    if room.count_players <= 2:
+        show_room(update=update, context=context, room=room)
+    else:
+        query = update.callback_query
+        query.edit_message_text('Комната занята, повторите попытку')
 
 
-def show_room(update: Update, context: CallbackContext) -> None:
+def show_room(update: Update, context: CallbackContext, room) -> None:
     query = update.callback_query
+    room.player_list.append(update.effective_message.chat_id)
+    room.count_players += 1
+    context.chat_data['stage'] = Stage.PLAY_GAME
+    query.edit_message_text(text=f'Проверка проверка, это комната {room.room_name}\n')
+    if room.count_players == 2:
+        test_game(update=update, context=context, room=room)
 
-    query.edit_message_text(text=f'Проверка проверка, это комната {context.chat_data["roomName"]}')
+
+def test_game(update: Update, context: CallbackContext, room) -> None:
+    first_player = random.choice(room.player_list)
+    update.effective_user.send_message(text='Напишите слово своему другу на проводе')
+    # text = update.message.text
+    # if text == 'hello':
+    #     room_name = context.chat_data['roomName']
+    #     context.chat_data['stage'] = Stage.LOBBY
+    #     update.message.reply_text('УРА! Вы угадали это слово')
+    #     del rooms[room_name]
+    #     main_menu(update, context)
+    #     print(rooms)
+    # else:
+    #     update.message.reply_text(text='Вы не угадали слово')
+
+
+def send_message_opponent(update: Update, context: CallbackContext) -> None:
+    text = update.message.text
+    room_name = context.chat_data['roomName']
+
+    room = rooms[room_name]
+    chat_id = update.effective_message.chat_id
+    opponent_name = ''
+    for i in room.player_list:
+        if i != chat_id:
+            opponent_name = i
+    update.message.bot.send_message(chat_id=opponent_name, text=f'Вам пришло сообщение: {text}')
+
+
+def process_message(update: Update, context: CallbackContext):
+    """
+    Обработчик текстовых сообщений
+    """
+    # Нам нужно обрабатывать только ввод слова во время создания комнаты, остальное делается кнопками
+    if 'stage' in context.chat_data and context.chat_data['stage'] == Stage.PLAY_GAME:
+        send_message_opponent(update=update, context=context)
+    else:
+        nickname_settings(update, context)
 
 
 def nickname_settings(update: Update, context: CallbackContext):
     name = update.message.text
     add_user(update, context, name)
+    database_manager.is_authorised_abled(update.effective_user.id)
     update.message.reply_text(f"Вы успешно зарегистрировались.\n\nВаше имя в игре {name}\n"
                               f"Вы всегда можете его изменить, вызвав команду /game_settings\n\n"
                               f"Чтобы выйти в главное меню, введите команду /main_menu")
@@ -152,8 +206,9 @@ def nickname_settings(update: Update, context: CallbackContext):
 
 def registration_success(update: Update, context: CallbackContext):
     query = update.callback_query
-    name = update.effective_user.username
+    name = update.effective_user.name
     add_user(update, context, name)
+    database_manager.is_authorised_abled(update.effective_user.id)
     query.edit_message_text(f"Вы успешно зарегистрировались.\n\nВаше имя в игре {name}\n"
                             f"Вы всегда можете его изменить, вызвав команду /game_settings\n\n"
                             f"Чтобы выйти в главное меню, введите команду /main_menu")
@@ -205,6 +260,8 @@ def add_user(update: Update, context: CallbackContext, nickname):
     try:
         id = update.effective_user.id
         username = update.effective_user.username
+        if username is None:
+            username = ''
         database_manager.add_user(id=id, username=username, game_name=nickname)
     except Exception as exception:
         print(exception)
@@ -341,7 +398,7 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("delete_account", delete_user_suggestion))
     dispatcher.add_handler(CommandHandler("change_name", change_user_nickname))
     dispatcher.add_handler(CommandHandler("game_settings", game_settings))
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, nickname_settings))
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, process_message))
     dispatcher.add_handler(CommandHandler("main_menu", main_menu))
     updater.dispatcher.add_handler(CallbackQueryHandler(check_query))
 
