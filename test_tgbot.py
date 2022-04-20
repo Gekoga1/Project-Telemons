@@ -74,12 +74,12 @@ def check_query(update: Update, context: CallbackContext) -> None:
         context.chat_data['stage'] = Stage.PLAYING_GAME
     elif query.data == 'monsters':
         team_or_collection(update, context)
-    elif query.data == 'collection':
-        collection_info(update=update, context=context)
     elif query.data == 'team':
         team_info(update, context)
+    elif query.data == 'collection':
+        collection_info(update, context)
     elif query.data == 'change team':
-        pass
+        collection_info(update, context)
     elif query.data == 'no':
         main_menu(update, context)
     elif query.data == 'change monster':
@@ -108,6 +108,9 @@ def choose_type_fight(update: Update, context: CallbackContext):
     fights = InlineKeyboardMarkup([
         [
             InlineKeyboardButton('PVP', callback_data='PVP'),
+        ],
+        [
+            InlineKeyboardButton('Вернуться в главное меню', callback_data='main menu')
         ]
     ])
     query.edit_message_text('Выберите тип сражения', reply_markup=fights)
@@ -216,43 +219,37 @@ def team_or_collection(update: Update, context: CallbackContext):
 
 
 def collection_info(update: Update, context: CallbackContext):
-    update.callback_query.edit_message_text('Здесь выводится вся коллекция монстров игрока')
-    # update.message.reply_text('Здесь выводится вся коллекция монстров игрока')
-    monster_choice(update=update, context=context)
+    update.message.reply_text('Здесь выводится вся коллекция монстров игрока')
+    monster_choice(update, context)
 
 
 def monster_choice(update: Update, context: CallbackContext):
     query = update.callback_query
     user_id = update.effective_user.id
     database_manager.set_state(MONSTER_NUM, user_id)
-    try:
-        # update.message.reply_text('Введите номер монстра')
-        query.edit_message_text('Введите номер монстра')
-        monster_num = update.effective_message.text
-        # monster_num = get_monster_num(update, context)
-        database_manager.set_state(NOTHING, user_id)
-        print(monster_num)
-        ques = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton('Заменить монстра', callback_data='change monster'),
-            InlineKeyboardButton('Посмотреть характеристики', callback_data='monster info')
-        ],
-            InlineKeyboardButton('Вернуться в главное меню', callback_data='main menu')
-        ])
-
-        # query.edit_message_text(f'Вы выбрали монстра под номером {str(monster_num)}\n'
-        #                         f'Что Вы хотите сделать?', reply_markup=ques)
-    except Exception as ex:
-        print(ex)
-        print('monster choice')
-        query.edit_message_text('Вы ввели не число, попробуйте ещё раз')
+    query.edit_message_text('Введите номер монстра')
+    get_monster_num(update, context)
 
 
 def get_monster_num(update: Update, context: CallbackContext):
-    monster_num = update.message.text
-    print(monster_num)
-    update.message.reply_text('Number!')
-    return monster_num
+    try:
+        monster_num = int(update.message.text)
+        user_id = update.effective_user.id
+        database_manager.set_state(NOTHING, user_id)
+        ques = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton('Заменить монстра', callback_data='change monster'),
+                InlineKeyboardButton('Посмотреть характеристики', callback_data='monster info')
+            ],
+            [
+                InlineKeyboardButton('Вернуться в главное меню', callback_data='main menu')
+            ]
+        ])
+        update.message.reply_text(f'Вы выбрали монстра под номером {str(monster_num)} \n'
+                                    f'Что Вы хотите сделать?', reply_markup=ques)
+    except Exception as ex:
+        print(ex)
+        update.message.reply_text('Вы ввели не число, попробуйте ещё раз.')
 
 
 def team_info(update: Update, context: CallbackContext):
@@ -263,7 +260,7 @@ def team_info(update: Update, context: CallbackContext):
             InlineKeyboardButton('Нет', callback_data='main menu')
         ]
     ])
-    update.message.reply_text('Вы хотите изменить команду?', reply_markup=change_ques)
+    update.callback_query.edit_message_text('Вы хотите изменить команду?', reply_markup=change_ques)
 
 
 def change_team(update: Update, context: CallbackContext):
@@ -276,15 +273,16 @@ def change_team(update: Update, context: CallbackContext):
 
 
 def process_message(update: Update, context: CallbackContext):
-    print(7)
+    print('process')
     if check_user(update, context) is False:
         nickname_settings(update, context)
     elif check_user(update, context) is True:
-        print(98)
         state = database_manager.get_state(update.effective_user.id)
         if state == MONSTER_NUM:
+            print('monster num')
             get_monster_num(update, context)
         elif state == NOTHING:
+            print('nothing')
             return
 
 
@@ -424,7 +422,7 @@ def terminate(update: Update, context: CallbackContext):
 
 
 def main() -> None:
-    updater = Updater(API_TOKEN)
+    updater = Updater('5126502477:AAHWS3TBCr-bqZJk1nZc6XktpATiuvL_-JA')
 
     dispatcher = updater.dispatcher
 
