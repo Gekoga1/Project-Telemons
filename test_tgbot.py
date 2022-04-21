@@ -116,13 +116,14 @@ def create_room(update: Update, context: CallbackContext) -> None:
     room.count_players = 0
     room.player_list = []
 
-    reply_markup = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton('Список игр', callback_data='join_room'),
-        ]
-    ])
-    query.edit_message_text(text='Подходящих комнат не нашлось, поэтому комната была создана, ждите пользователей',
-                            reply_markup=reply_markup)
+    query.edit_message_text(
+        text='Подходящих комнат не нашлось, поэтому комната была создана.\nВы уже находитесь в ней, ждите пользователей')
+
+
+    context.chat_data['roomName'] = user.username
+    room.player_list.append(update.effective_message.chat_id)
+    room.count_players += 1
+    context.chat_data['stage'] = Stage.PLAY_GAME
 
 
 def join_room(update: Update, context: CallbackContext) -> None:
@@ -261,7 +262,7 @@ def add_user(update: Update, context: CallbackContext, nickname):
         id = update.effective_user.id
         username = update.effective_user.username
         if username is None:
-            username = ''
+            username = update.effective_user.name
         database_manager.add_user(id=id, username=username, game_name=nickname)
     except Exception as exception:
         print(exception)
