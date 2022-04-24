@@ -16,6 +16,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 rooms = {}
 
+# основные состояния игрока при вводе
+NOTHING = 'nothing'
+MONSTER_NUM = 'monster_num'
+ABILITY_NUM = 'ability_num'
+
 
 # id = 0
 # username = ''
@@ -37,6 +42,7 @@ def get_authorised(update: Update, context: CallbackContext):
 # обработка нажатий inline buttons
 def check_query(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
+    query.answer()
     if query.data == 'registration_yes':
         nickname_or_tgname(update, context)
     elif query.data == 'registration_no':
@@ -68,11 +74,42 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data in rooms.keys():
         select_room(update, context)
         context.chat_data['stage'] = Stage.PLAYING_GAME
+    elif query.data == 'monsters':
+        team_or_collection(update, context)
+    elif query.data == 'team':
+        team_info(update, context)
+    elif query.data == 'collection':
+        collection_info(update, context)
+    elif query.data == 'change team':
+        collection_info(update, context)
+    elif query.data == 'no':
+        main_menu(update, context)
+    elif query.data == 'change monster':
+        pass
+    elif query.data == 'monster info':
+        monster_info(update, context)
+    elif query.data == 'main menu':
+        main_menu(update, context)
+    elif query.data == 'change ability':
+        print_ability_num(update, context)
     else:
         update.message.reply_text('Я вас не понимаю, повторите попытку ввода.')
 
 
-def nickname_or_tgname(update: Update, context: CallbackContext):
+def process_message(update: Update, context: CallbackContext):  # обработчик текстовых сообщений
+    if check_user(update, context) is False:
+        nickname_settings(update, context)
+    elif check_user(update, context) is True:
+        state = database_manager.get_state(update.effective_user.id)
+        if state == MONSTER_NUM:
+            get_monster_num(update, context)
+        elif state == ABILITY_NUM:
+            get_ability_num(update, context)
+        elif state == NOTHING:
+            return
+
+
+def nickname_or_tgname(update: Update, context: CallbackContext):  # выбор: имя из тг или придуманный ник
     query = update.callback_query
     name_ques = InlineKeyboardMarkup([
         [
@@ -88,6 +125,9 @@ def choose_type_fight(update: Update, context: CallbackContext):
     fights = InlineKeyboardMarkup([
         [
             InlineKeyboardButton('PVP', callback_data='PVP'),
+        ],
+        [
+            InlineKeyboardButton('Вернуться в главное меню', callback_data='main menu')
         ]
     ])
     query.edit_message_text('Выберите тип сражения', reply_markup=fights)
@@ -195,7 +235,7 @@ def process_message(update: Update, context: CallbackContext):
         nickname_settings(update, context)
 
 
-def nickname_settings(update: Update, context: CallbackContext):
+def nickname_settings(update: Update, context: CallbackContext):  # собственный ник
     name = update.message.text
     add_user(update, context, name)
     database_manager.is_authorised_abled(update.effective_user.id)
@@ -204,7 +244,7 @@ def nickname_settings(update: Update, context: CallbackContext):
                               f"Чтобы выйти в главное меню, введите команду /main_menu")
 
 
-def registration_success(update: Update, context: CallbackContext):
+def registration_success(update: Update, context: CallbackContext):  # имя из тг
     query = update.callback_query
     name = update.effective_user.name
     add_user(update, context, name)
@@ -214,34 +254,126 @@ def registration_success(update: Update, context: CallbackContext):
                             f"Чтобы выйти в главное меню, введите команду /main_menu")
 
 
-def main_menu(update: Update, context: CallbackContext):
+def main_menu(update: Update, context: CallbackContext):  # главное меню
     id = update.effective_user.id
+    query = update.callback_query
     if get_authorised(update=update, context=context):
         reply_markup = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton("Выбор боёв", callback_data='choose_type_fight'),
-                InlineKeyboardButton("Редактирование команды", callback_data='customize_team'),
+                InlineKeyboardButton("Просмотр монстров", callback_data='monsters'),
             ],
             [
                 InlineKeyboardButton('Настройки игры', callback_data='game_settings')
             ]
         ])
         nickname = database_manager.get_gamename(id)
-        update.message.reply_text(f'Добро пожаловать в игру, {nickname}!\n\n'
-                                  f'Чем хотите заняться?', reply_markup=reply_markup)
+        if query is None:
+            update.message.reply_text(f'Добро пожаловать в игру, {nickname}!\n\n'
+                                      f'Чем хотите заняться?', reply_markup=reply_markup)
+        else:
+            query.edit_message_text(f'Добро пожаловать в игру, {nickname}!\n\n'
+                                    f'Чем хотите заняться?', reply_markup=reply_markup)
     else:
         update.message.reply_text('Вы не авторизованы, чтобы играть нужно авторизоваться.')
 
 
-# def process_message(update: Update, context: CallbackContext):
-#     """
-#     Обработчик текстовых сообщений
-#     """
-#     # Нам нужно обрабатывать только ввод слова во время создания комнаты, остальное делается кнопками
-#     if 'stage' not in context.chat_data or context.chat_data['stage'] != Stage.SELECT_WORD:
-#         return
-#
-#     select_word(update, context)
+def team_or_collection(update: Update, context: CallbackContext):  # выбор, что смотреть: коллекция или команда
+    query = update.callback_query
+    ques = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton('Просмотр коллекции', callback_data='collection'),
+            InlineKeyboardButton('Просмотр команды', callback_data='team')
+        ]
+    ])
+    query.edit_message_text('Что Вы хотите сделать?', reply_markup=ques)
+
+
+def collection_info(update: Update, context: CallbackContext):  # вывод всей коллекции монстров
+    update.effective_user.send_message(text='Здесь выводится вся коллекция монстров игрока')
+    monster_choice(update, context)
+
+
+def monster_choice(update: Update, context: CallbackContext):  # спрашивает номер монстра
+    user_id = update.effective_user.id
+    database_manager.set_state(MONSTER_NUM, user_id)
+    update.effective_user.send_message(text='Введите номер монстра')
+    get_monster_num(update, context)
+
+
+def get_monster_num(update: Update, context: CallbackContext):  # получает номер монстра
+    try:
+        monster_num = int(update.message.text)
+        user_id = update.effective_user.id
+        database_manager.set_state(NOTHING, user_id)
+        ques = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton('Заменить монстра', callback_data='change monster'),
+                InlineKeyboardButton('Посмотреть характеристики', callback_data='monster info')
+            ],
+            [
+                InlineKeyboardButton('Вернуться в главное меню', callback_data='main menu')
+            ]
+        ])
+        update.message.reply_text(f'Вы выбрали монстра под номером {str(monster_num)} \n'
+                                  f'Что Вы хотите сделать?', reply_markup=ques)
+    except Exception as ex:
+        print(ex)
+        update.message.reply_text('Вы ввели не число, попробуйте ещё раз.')
+
+
+def monster_info(update: Update, context: CallbackContext):  # информация о монстре
+    update.effective_user.send_message(text='Здесь выводится инфа о монстре')
+    monster_activity(update, context)
+
+
+def monster_activity(update: Update, context: CallbackContext):  # предлагает действия с монстром
+    ques = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton('Переименовать', callback_data='change monster name'),
+            InlineKeyboardButton('Заменить способность', callback_data='change ability')
+        ],
+        [
+            InlineKeyboardButton('Эволюционировать', callback_data='evolution'),
+            InlineKeyboardButton('Заменить монстра', callback_data='change monster')
+        ],
+        [
+            InlineKeyboardButton('Вернуться в главное меню', callback_data='main menu')
+        ]
+    ])
+    update.effective_user.send_message(text='Что вы хотите сделать?', reply_markup=ques)
+
+
+def print_ability_num(update: Update, context: CallbackContext):  # спрашивает номер способности
+    update.effective_user.send_message(text='Введите номер способности, которую хотите заменить')
+    user_id = update.effective_user.id
+    database_manager.set_state(ABILITY_NUM, user_id)
+    get_ability_num(update, context)
+
+
+def get_ability_num(update: Update, context: CallbackContext):  # получает номер способности от пользователя
+    try:
+        ability_num = int(update.message.text)
+        show_ability_list(update, context, ability_num)
+    except Exception as ex:
+        print(ex)
+        update.message.reply_text('Вы ввели не число, попробуйте ещё раз')
+
+
+def show_ability_list(update: Update, context: CallbackContext,
+                      ability_num):  # показывает список доступных способностей
+    print(ability_num)
+    update.message.reply_text('Здесь выводится список доступных способностей')
+
+
+def team_info(update: Update, context: CallbackContext):  # информация о команде
+    change_ques = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton('Да', callback_data='change team'),
+            InlineKeyboardButton('Нет', callback_data='main menu')
+        ]
+    ])
+    update.callback_query.edit_message_text('Вы хотите изменить команду?', reply_markup=change_ques)
 
 
 # проверяем существует ли такой пользователь в базе
@@ -298,7 +430,7 @@ def propose_change_user_nickname(update: Update, context: CallbackContext, query
     query.edit_message_text('Введите функцию формата\n/change_name <новый ник>')
 
 
-def change_user_nickname(update: Update, context: CallbackContext):
+def change_user_nickname(update: Update, context: CallbackContext):  # изменение ника
     id = update.effective_user.id
     message = update.message.text
     message_list = message.split()
@@ -325,11 +457,6 @@ def profile(update: Update, context: CallbackContext):
     if get_authorised(update=update, context=context):
         update.message.reply_text(f'id: {id}\n'
                                   f'username: {database_manager.get_gamename(id)}')
-    # if is_authorised:
-    #     update.message.reply_text(f'id: {id}\n'
-    #                               f'username: {username}')
-    # else:
-    #     update.message.reply_text('Вы не авторизованы')
 
 
 # Пример функционала игры
@@ -340,7 +467,7 @@ def show_game_example(update: Update, context: CallbackContext):
     update.message.reply_text(result4)
 
 
-def game_settings(update: Update, context: CallbackContext):
+def game_settings(update: Update, context: CallbackContext):  # настройки игры
     query = update.callback_query
     if query is not None:
         keyboard = InlineKeyboardMarkup([
