@@ -1,7 +1,6 @@
-from typing import Union
-import sqlite3
 import logging
-
+import sqlite3
+from typing import Union
 
 logging.basicConfig(
     filename='game-lib.log',
@@ -20,7 +19,7 @@ def clamp(minimum: float, maximum: float, value: Union[int, float],
     return value
 
 
-con = sqlite3.connect("lib.db")
+con = sqlite3.connect("databases/lib.db")
 cur = con.cursor()
 
 
@@ -145,11 +144,10 @@ class Monster_Template:
 
 
 test = Monster_Template(1, shiny=True)
-print(test)
-print(test.battle_stats())
+result1 = test.battle_stats()
 test.get_exp(100)
-print(test.battle_stats())
+result2 = test.battle_stats()
 test.get_exp(1000)
-print(test.battle_stats())
+result3 = test.battle_stats()
 test.get_exp(-200)
-print(test.battle_stats())
+result4 = test.battle_stats()
