@@ -13,8 +13,7 @@ class User:
                                   NOT NULL,
             username      TEXT    NOT NULL,
             game_name     TEXT    UNIQUE,
-            is_authorised BOOLEAN NOT NULL,
-            state TEXT NOT NULL
+            is_authorised BOOLEAN NOT NULL
         );
         """
         try:
@@ -24,10 +23,9 @@ class User:
             print(exception)
 
     def add_user(self, id, username, game_name):
-        state = 'nothing'
         try:
-            request = f"""INSERT INTO users VALUES(?, ?, ?, ?, ?)"""
-            self.cursor.execute(request, (id, username, game_name, True, state))
+            request = f"""INSERT INTO users VALUES(?, ?, ?, ?)"""
+            self.cursor.execute(request, (id, username, game_name, True))
             self.connection.commit()
             return True
         except Exception as exception:
@@ -105,13 +103,3 @@ class User:
         req = """SELECT game_name FROM users WHERE id = ?"""
         res = self.cursor.execute(req, (user_id,)).fetchone()
         return ''.join(res)
-
-    def get_state(self, user_id):
-        req = """SELECT state FROM users WHERE id = ?"""
-        res = self.cursor.execute(req, (user_id,)).fetchone()
-        return ''.join(res)
-
-    def set_state(self, new_state, user_id):
-        req = """UPDATE users SET state = ? WHERE id = ?"""
-        self.cursor.execute(req, (new_state, user_id,))
-        self.connection.commit()

@@ -21,18 +21,6 @@ MONSTER_NUM = 'monster_num'
 ABILITY_NUM = 'ability_num'
 
 
-# id = 0
-# username = ''
-# is_authorised = False
-
-
-# устанавливаем текущие данные пользователя
-# def set_user_data(user_id, name):
-#     global id, username
-#     id = user_id
-#     username = name
-
-
 def get_authorised(update: Update, context: CallbackContext):
     id = update.effective_user.id
     return database_manager.check_is_authorised(id=id)
@@ -99,12 +87,11 @@ def process_message(update: Update, context: CallbackContext):  # обработ
     if check_user(update, context) is False:
         nickname_settings(update, context)
     elif check_user(update, context) is True:
-        state = database_manager.get_state(update.effective_user.id)
-        if state == MONSTER_NUM:
+        if context.chat_data['waiting_for'] == MONSTER_NUM:
             get_monster_num(update, context)
-        elif state == ABILITY_NUM:
+        elif context.chat_data['waiting_for'] == ABILITY_NUM:
             get_ability_num(update, context)
-        elif state == NOTHING:
+        elif context.chat_data['waiting_for'] == NOTHING:
             return
 
 
@@ -200,6 +187,7 @@ def registration_success(update: Update, context: CallbackContext):  # имя и
 
 
 def main_menu(update: Update, context: CallbackContext):  # главное меню
+    context.chat_data['waiting_for'] = NOTHING
     id = update.effective_user.id
     query = update.callback_query
     if get_authorised(update=update, context=context):
@@ -240,8 +228,7 @@ def collection_info(update: Update, context: CallbackContext):  # вывод в�
 
 
 def monster_choice(update: Update, context: CallbackContext):  # спрашивает номер монстра
-    user_id = update.effective_user.id
-    database_manager.set_state(MONSTER_NUM, user_id)
+    context.chat_data['waiting_for'] = MONSTER_NUM
     update.effective_user.send_message(text='Введите номер монстра')
     get_monster_num(update, context)
 
@@ -249,8 +236,6 @@ def monster_choice(update: Update, context: CallbackContext):  # спрашив�
 def get_monster_num(update: Update, context: CallbackContext):  # получает номер монстра
     try:
         monster_num = int(update.message.text)
-        user_id = update.effective_user.id
-        database_manager.set_state(NOTHING, user_id)
         ques = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton('Заменить монстра', callback_data='change monster'),
@@ -291,8 +276,7 @@ def monster_activity(update: Update, context: CallbackContext):  # предла�
 
 def print_ability_num(update: Update, context: CallbackContext):  # спрашивает номер способности
     update.effective_user.send_message(text='Введите номер способности, которую хотите заменить')
-    user_id = update.effective_user.id
-    database_manager.set_state(ABILITY_NUM, user_id)
+    context.chat_data['waiting_for'] = ABILITY_NUM
     get_ability_num(update, context)
 
 
@@ -312,6 +296,7 @@ def show_ability_list(update: Update, context: CallbackContext,
 
 
 def team_info(update: Update, context: CallbackContext):  # информация о команде
+    update.effective_user.send_message(text='Инфа о команде')
     change_ques = InlineKeyboardMarkup([
         [
             InlineKeyboardButton('Да', callback_data='change team'),
