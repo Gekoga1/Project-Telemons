@@ -19,3 +19,4 @@ class Stage(Enum):
     LOBBY = 'lobby'
     SELECT_ROOM = "select_room"
     PLAY_GAME = "play_game"
+
