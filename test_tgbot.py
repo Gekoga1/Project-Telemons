@@ -119,7 +119,6 @@ def create_room(update: Update, context: CallbackContext) -> None:
     query.edit_message_text(
         text='Подходящих комнат не нашлось, поэтому комната была создана.\nВы уже находитесь в ней, ждите пользователей')
 
-
     context.chat_data['roomName'] = user.username
     room.player_list.append(update.effective_message.chat_id)
     room.count_players += 1
