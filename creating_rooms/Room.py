@@ -5,6 +5,8 @@ class Room:
     room_name: str
     count_players: int
     player_list: list
+    count_round: int
+    round_data: dict
     author_id: str
     player_id: str
     score: int

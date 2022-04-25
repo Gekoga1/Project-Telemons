@@ -1,16 +1,10 @@
-import logging
-import random
-
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler, MessageHandler, Filters
+from telegram.ext import CallbackContext
 
-from creating_rooms.Room import Room, Stage
-from databases.database_manager import User
-from game_logic.game_lib import result1, result2, result3, result4
-from configure.secrets import API_TOKEN
+from configure.configuraion import database_manager
 
 
-def nickname_settings(update: Update, context: CallbackContext, database_manager):  # собственный ник
+def nickname_settings(update: Update, context: CallbackContext):  # собственный ник
     name = update.message.text
     add_user(update, context, name)
     database_manager.is_authorised_abled(update.effective_user.id)
@@ -19,7 +13,7 @@ def nickname_settings(update: Update, context: CallbackContext, database_manager
                               f"Чтобы выйти в главное меню, введите команду /main_menu")
 
 
-def registration_success(update: Update, context: CallbackContext, database_manager):  # имя из тг
+def registration_success(update: Update, context: CallbackContext):  # имя из тг
     query = update.callback_query
     name = update.effective_user.name
     add_user(update, context, name)
@@ -30,7 +24,7 @@ def registration_success(update: Update, context: CallbackContext, database_mana
 
 
 # проверяем существует ли такой пользователь в базе
-def check_user(update: Update, context: CallbackContext, database_manager):
+def check_user(update: Update, context: CallbackContext):
     try:
         id = update.effective_user.id
         return database_manager.check_user(id=id)
@@ -40,7 +34,7 @@ def check_user(update: Update, context: CallbackContext, database_manager):
 
 
 # добавляем пользователя в бд
-def add_user(update: Update, context: CallbackContext, nickname, database_manager):
+def add_user(update: Update, context: CallbackContext, nickname):
     # query = update.callback_query
     try:
         id = update.effective_user.id
@@ -54,7 +48,7 @@ def add_user(update: Update, context: CallbackContext, nickname, database_manage
 
 
 # удаляем пользователя из бд
-def delete_user(update: Update, context: CallbackContext, database_manager):
+def delete_user(update: Update, context: CallbackContext):
     query = update.callback_query
     try:
         id = update.effective_user.id

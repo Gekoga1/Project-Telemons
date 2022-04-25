@@ -1,30 +1,23 @@
-import logging
-import random
+from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler, MessageHandler, Filters
-
-from creating_rooms.Room import Room, Stage
-from databases.database_manager import User
-from game_logic.game_lib import result1, result2, result3, result4
-from configure.secrets import API_TOKEN
-
-from fighting import *
-from settings import *
-from monsters import *
 from authorisation import *
+from configure.secrets import API_TOKEN
+import logging
+from fighting import *
+from game_logic.game_lib import result1, result2, result3, result4
+from monsters import *
+from settings import *
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
 
 logger = logging.getLogger(__name__)
-rooms = {}
 
 # основные состояния игрока при вводе
-NOTHING = 'nothing'
-MONSTER_NUM = 'monster_num'
-ABILITY_NUM = 'ability_num'
+# NOTHING = 'nothing'
+# MONSTER_NUM = 'monster_num'
+# ABILITY_NUM = 'ability_num'
 
 
 # id = 0
@@ -76,9 +69,9 @@ def check_query(update: Update, context: CallbackContext) -> None:
         # нажата кнопка создать комнату
     elif query.data == 'create_room':
         create_room(update, context)
-    elif query.data in rooms.keys():
-        select_room(update, context)
-        context.chat_data['stage'] = Stage.PLAYING_GAME
+    # elif query.data in rooms.keys():
+    #     select_room(update, context)
+    #     context.chat_data['stage'] = Stage.PLAYING_GAME
     elif query.data == 'monsters':
         team_or_collection(update, context)
     elif query.data == 'team':
@@ -102,7 +95,9 @@ def check_query(update: Update, context: CallbackContext) -> None:
 
 
 def process_message(update: Update, context: CallbackContext):  # обработчик текстовых сообщений
-    if check_user(update, context) is False:
+    if 'stage' in context.chat_data and context.chat_data['stage'] == Stage.PLAY_GAME:
+        send_message_opponent(update=update, context=context)
+    elif check_user(update, context) is False:
         nickname_settings(update, context)
     elif check_user(update, context) is True:
         state = database_manager.get_state(update.effective_user.id)
@@ -229,15 +224,13 @@ def process_message(update: Update, context: CallbackContext):  # обработ
 #     update.message.bot.send_message(chat_id=opponent_name, text=f'Вам пришло сообщение: {text}')
 
 
-def process_message(update: Update, context: CallbackContext):
-    """
-    Обработчик текстовых сообщений
-    """
+# def process_message(update: Update, context: CallbackContext):
+#     """
+#     Обработчик текстовых сообщений
+#     """
+#     pass
     # Нам нужно обрабатывать только ввод слова во время создания комнаты, остальное делается кнопками
-    if 'stage' in context.chat_data and context.chat_data['stage'] == Stage.PLAY_GAME:
-        send_message_opponent(update=update, context=context)
-    else:
-        nickname_settings(update, context)
+
 #
 #
 # def nickname_settings(update: Update, context: CallbackContext):  # собственный ник
@@ -540,5 +533,4 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    database_manager = User()
     main()

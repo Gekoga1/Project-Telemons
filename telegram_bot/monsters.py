@@ -1,7 +1,7 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler, MessageHandler, Filters
+from telegram.ext import CallbackContext
 
-
+from configure.configuraion import database_manager, MONSTER_NUM, NOTHING, ABILITY_NUM
 
 
 def team_or_collection(update: Update, context: CallbackContext):  # выбор, что смотреть: коллекция или команда

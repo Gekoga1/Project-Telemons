@@ -1,11 +1,10 @@
-import logging
 import random
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler, MessageHandler, Filters
+from telegram.ext import CallbackContext
 
+from configure.configuraion import rooms
 from creating_rooms.Room import Room, Stage
-
 
 
 def choose_type_fight(update: Update, context: CallbackContext):
@@ -43,6 +42,7 @@ def create_room(update: Update, context: CallbackContext) -> None:
     context.chat_data['stage'] = Stage.HOSTING_GAME
     room.count_players = 0
     room.player_list = []
+    room.round_data = {}
 
     query.edit_message_text(
         text='Подходящих комнат не нашлось, поэтому комната была создана.\nВы уже находитесь в ней, ждите пользователей')
@@ -54,24 +54,27 @@ def create_room(update: Update, context: CallbackContext) -> None:
 
 
 def join_room(update: Update, context: CallbackContext) -> None:
-    buttons = []
     for roomKey in rooms:
-        buttons.append(InlineKeyboardButton(rooms[roomKey].room_name, callback_data=rooms[roomKey].room_name))
-    keyboard = [buttons]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    query = update.callback_query
-    query.edit_message_text(text='Выберите комнату', reply_markup=reply_markup)
+        if rooms[roomKey].count_players <= 2:
+            context.chat_data['roomName'] = roomKey
+            room_name = context.chat_data['roomName']
+            room = rooms[room_name]
+            show_room(update=update, context=context, room=room)
+    # buttons = []
+    # for roomKey in rooms:
+    #     if rooms[roomKey].count_players <= 2:
+    #         buttons.append(InlineKeyboardButton(rooms[roomKey].room_name, callback_data=rooms[roomKey].room_name))
+    # keyboard = [buttons]
+    # reply_markup = InlineKeyboardMarkup(keyboard)
+    # query = update.callback_query
+    # query.edit_message_text(text='Выберите комнату', reply_markup=reply_markup)
 
 
-def select_room(update: Update, context: CallbackContext) -> None:
-    context.chat_data['roomName'] = update.callback_query.data
-    room_name = context.chat_data['roomName']
-    room = rooms[room_name]
-    if room.count_players <= 2:
-        show_room(update=update, context=context, room=room)
-    else:
-        query = update.callback_query
-        query.edit_message_text('Комната занята, повторите попытку')
+# def select_room(update: Update, context: CallbackContext) -> None:
+#     context.chat_data['roomName'] = update.callback_query.data
+#     room_name = context.chat_data['roomName']
+#     room = rooms[room_name]
+#     show_room(update=update, context=context, room=room)
 
 
 def show_room(update: Update, context: CallbackContext, room) -> None:
@@ -81,12 +84,22 @@ def show_room(update: Update, context: CallbackContext, room) -> None:
     context.chat_data['stage'] = Stage.PLAY_GAME
     query.edit_message_text(text=f'Проверка проверка, это комната {room.room_name}\n')
     if room.count_players == 2:
+        room.count_round = 1
         test_game(update=update, context=context, room=room)
 
 
 def test_game(update: Update, context: CallbackContext, room) -> None:
     first_player = random.choice(room.player_list)
-    update.effective_user.send_message(text='Напишите слово своему другу на проводе')
+    for i in room.player_list:
+        try:
+            context.bot.send_message(chat_id=i, text='Игра началась')
+            context.bot.send_message(chat_id=i, text='.')
+            context.bot.send_message(chat_id=i, text='.')
+            context.bot.send_message(chat_id=i, text='.')
+        except Exception as exception:
+            print(exception)
+    update.effective_user.send_message(text=f'Раунд номер {room.count_round}')
+
     # text = update.message.text
     # if text == 'hello':
     #     room_name = context.chat_data['roomName']
@@ -100,13 +113,29 @@ def test_game(update: Update, context: CallbackContext, room) -> None:
 
 
 def send_message_opponent(update: Update, context: CallbackContext) -> None:
-    text = update.message.text
     room_name = context.chat_data['roomName']
-
     room = rooms[room_name]
-    chat_id = update.effective_message.chat_id
-    opponent_name = ''
-    for i in room.player_list:
-        if i != chat_id:
-            opponent_name = i
-    update.message.bot.send_message(chat_id=opponent_name, text=f'Вам пришло сообщение: {text}')
+
+    text = update.message.text
+    user_data = update.effective_user.id
+
+    if user_data not in room.round_data:
+        room.round_data[user_data] = text
+
+    if len(room.round_data) == 2:
+        for user_id in room.player_list:
+            context.bot.send_message(chat_id=user_id, text=f'ход совершён')
+        for user_id in room.round_data:
+            context.bot.send_message(chat_id=user_id, text=room.round_data[user_id])
+
+    # text = update.message.text
+    # room_name = context.chat_data['roomName']
+    #
+    # room = rooms[room_name]
+    # chat_id = update.effective_message.chat_id
+    # name = update.effective_user.name
+    # opponent_name = ''
+    # for i in room.player_list:
+    #     if i != chat_id:
+    #         opponent_name = i
+    # update.message.bot.send_message(chat_id=opponent_name, text=f'Вам пришло сообщение от {name}:\n {text}')
