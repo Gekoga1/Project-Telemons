@@ -5,7 +5,7 @@ from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQuery
 
 from Room import Room, Stage
 from database_manager import User
-from game_lib import result1, result2, result3, result4
+from game_lib import result1, result2, result3, result4, Monster_Template
 from secrets import API_TOKEN
 
 logging.basicConfig(
@@ -42,9 +42,9 @@ def check_query(update: Update, context: CallbackContext) -> None:
         query.edit_message_text('Процесс отменён')
     elif query.data == 'nickname':
         query.edit_message_text('Введите свой ник')
-        nickname_settings(update, context)
+        write_nickname(update, context)
     elif query.data == 'tg_name':
-        registration_success(update, context)
+        name_from_telegram(update, context)
     elif query.data == 'game_settings':
         game_settings(update=update, context=context)
     elif query.data == 'choose_type_fight':
@@ -79,13 +79,20 @@ def check_query(update: Update, context: CallbackContext) -> None:
         main_menu(update, context)
     elif query.data == 'change ability':
         print_ability_num(update, context)
+    elif query.data == 'spylit':
+        monster_class = Monster_Template(1, shiny=False)
+        registration(update, context, monster_class)
+    elif query.data == 'ice':
+        pass
+    elif query.data == 'grass':
+        pass
     else:
         update.message.reply_text('Я вас не понимаю, повторите попытку ввода.')
 
 
 def process_message(update: Update, context: CallbackContext):  # обработчик текстовых сообщений
     if check_user(update, context) is False:
-        nickname_settings(update, context)
+        write_nickname(update, context)
     elif check_user(update, context) is True:
         if context.chat_data['waiting_for'] == MONSTER_NUM:
             get_monster_num(update, context)
@@ -169,27 +176,50 @@ def show_room(update: Update, context: CallbackContext) -> None:
     query.edit_message_text(text=f'Проверка проверка, это комната {context.chat_data["roomName"]}')
 
 
-def nickname_settings(update: Update, context: CallbackContext):  # собственный ник
+def write_nickname(update: Update, context: CallbackContext):  # собственный ник
     name = update.message.text
     add_user(update, context, name)
-    update.message.reply_text(f"Вы успешно зарегистрировались.\n\nВаше имя в игре {name}\n"
-                              f"Вы всегда можете его изменить, вызвав команду /game_settings\n\n"
-                              f"Чтобы выйти в главное меню, введите команду /main_menu")
+    choose_fst_monster(update, context)
 
 
-def registration_success(update: Update, context: CallbackContext):  # имя из тг
-    query = update.callback_query
+def name_from_telegram(update: Update, context: CallbackContext):  # имя из тг
     name = update.effective_user.username
     add_user(update, context, name)
-    query.edit_message_text(f"Вы успешно зарегистрировались.\n\nВаше имя в игре {name}\n"
-                            f"Вы всегда можете его изменить, вызвав команду /game_settings\n\n"
-                            f"Чтобы выйти в главное меню, введите команду /main_menu")
+    choose_fst_monster(update, context)
+
+
+def choose_fst_monster(update: Update, context: CallbackContext):  # выбор стартового монстра
+    ques = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton('Каменный паук', callback_data='spylit'),
+            InlineKeyboardButton('Ледяной лис', callback_data='ice'),
+            InlineKeyboardButton('Травяной', callback_data='grass')
+        ]
+    ])
+    update.effective_user.send_message(text='Выберите своего первого монстра', reply_markup=ques)
+
+
+def registration(update: Update, context: CallbackContext, monster_class): # завершение регистрации
+    user_id = update.effective_user.id
+    name = database_manager.get_gamename(user_id)
+    monster_id = monster_class.get_name()  # поменять на id !!!!
+    team = [monster_id, 'empty', 'empty', 'empty']
+    change_team(update, context, team)
+    database_manager.add_monster(monster_id, 1, 0, False)
+    update.effective_user.send_message(f"Вы успешно зарегистрировались.\n\nВаше имя в игре {name}\n"
+                                       f"Вы всегда можете его изменить, вызвав команду /game_settings\n\n"
+                                       f"Чтобы выйти в главное меню, введите команду /main_menu")
+
+
+def change_team(update: Update, context: CallbackContext, team):  # изменение команды
+    user_id = update.effective_user.id
+    final_team = f'{team[0]};{team[1]};{team[2]};{team[3]}'
+    database_manager.change_user_team(user_id, final_team)
 
 
 def main_menu(update: Update, context: CallbackContext):  # главное меню
     context.chat_data['waiting_for'] = NOTHING
     id = update.effective_user.id
-    query = update.callback_query
     if get_authorised(update=update, context=context):
         reply_markup = InlineKeyboardMarkup([
             [
@@ -201,12 +231,8 @@ def main_menu(update: Update, context: CallbackContext):  # главное ме�
             ]
         ])
         nickname = database_manager.get_gamename(id)
-        if query is None:
-            update.message.reply_text(f'Добро пожаловать в игру, {nickname}!\n\n'
-                                      f'Чем хотите заняться?', reply_markup=reply_markup)
-        else:
-            query.edit_message_text(f'Добро пожаловать в игру, {nickname}!\n\n'
-                                    f'Чем хотите заняться?', reply_markup=reply_markup)
+        update.effective_user.send_message(f'Добро пожаловать в игру, {nickname}!\n\n'
+                                           f'Чем хотите заняться?', reply_markup=reply_markup)
     else:
         update.message.reply_text('Вы не авторизованы, чтобы играть нужно авторизоваться.')
 
@@ -421,9 +447,15 @@ def start(update: Update, context: CallbackContext) -> None:
 
     update.message.reply_text('Добро пожаловать. Для начала пройдите авторизацию.')
     if check_user(update=update, context=context):
-        update.message.reply_text('У вас уже есть аккаунт. Вы можете продолжать')
         database_manager.is_authorised_abled(id=id)
-        main_menu(update, context)
+        team = database_manager.get_team(id).split(';')   # проверка на то, выбрал ли игрок первого монстра
+
+        if team[0] == 'empty':
+            update.message.reply_text('Вы ещё не закончили регистрацию')
+            choose_fst_monster(update, context)
+        else:
+            update.message.reply_text('У вас уже есть аккаунт. Вы можете продолжать')
+            main_menu(update, context)
     else:
         registration_answer = InlineKeyboardMarkup([
             [

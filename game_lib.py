@@ -19,7 +19,7 @@ def clamp(minimum: float, maximum: float, value: Union[int, float],
     return value
 
 
-con = sqlite3.connect("databases/lib.db")
+con = sqlite3.connect("databases/lib.db", check_same_thread=False)
 cur = con.cursor()
 
 
