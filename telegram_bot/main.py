@@ -1,10 +1,11 @@
+import logging
+
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 
 from authorisation import *
 from configure.secrets import API_TOKEN
-import logging
 from fighting import *
-from game_logic.game_lib import result1, result2, result3, result4
+# from game_logic.game_lib import result1, result2, result3, result4
 from monsters import *
 from settings import *
 
@@ -13,6 +14,7 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
 
 # основные состояния игрока при вводе
 # NOTHING = 'nothing'
@@ -229,7 +231,7 @@ def process_message(update: Update, context: CallbackContext):  # обработ
 #     Обработчик текстовых сообщений
 #     """
 #     pass
-    # Нам нужно обрабатывать только ввод слова во время создания комнаты, остальное делается кнопками
+# Нам нужно обрабатывать только ввод слова во время создания комнаты, остальное делается кнопками
 
 #
 #
@@ -255,25 +257,51 @@ def process_message(update: Update, context: CallbackContext):  # обработ
 def main_menu(update: Update, context: CallbackContext):  # главное меню
     id = update.effective_user.id
     query = update.callback_query
-    if get_authorised(update=update, context=context):
-        reply_markup = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("Выбор боёв", callback_data='choose_type_fight'),
-                InlineKeyboardButton("Просмотр монстров", callback_data='monsters'),
-            ],
-            [
-                InlineKeyboardButton('Настройки игры', callback_data='game_settings')
-            ]
-        ])
-        nickname = database_manager.get_gamename(id)
-        if query is None:
-            update.message.reply_text(f'Добро пожаловать в игру, {nickname}!\n\n'
-                                      f'Чем хотите заняться?', reply_markup=reply_markup)
+    try:
+        if context.chat_data['stage'] == Stage.PLAY_GAME:
+            update.message.reply_text(text='Ты сейчас играешь, нельзя вернуться в меня до окончания матча')
         else:
-            query.edit_message_text(f'Добро пожаловать в игру, {nickname}!\n\n'
-                                    f'Чем хотите заняться?', reply_markup=reply_markup)
-    else:
-        update.message.reply_text('Вы не авторизованы, чтобы играть нужно авторизоваться.')
+            if get_authorised(update=update, context=context):
+                reply_markup = InlineKeyboardMarkup([
+                    [
+                        InlineKeyboardButton("Выбор боёв", callback_data='choose_type_fight'),
+                        InlineKeyboardButton("Просмотр монстров", callback_data='monsters'),
+                    ],
+                    [
+                        InlineKeyboardButton('Настройки игры', callback_data='game_settings')
+                    ]
+                ])
+                nickname = database_manager.get_gamename(id)
+                if query is None:
+                    update.message.reply_text(f'Добро пожаловать в игру, {nickname}!\n\n'
+                                              f'Чем хотите заняться?', reply_markup=reply_markup)
+                else:
+                    query.edit_message_text(f'Добро пожаловать в игру, {nickname}!\n\n'
+                                            f'Чем хотите заняться?', reply_markup=reply_markup)
+            else:
+                update.message.reply_text('Вы не авторизованы, чтобы играть нужно авторизоваться.')
+    except Exception as exception:
+        if get_authorised(update=update, context=context):
+            reply_markup = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("Выбор боёв", callback_data='choose_type_fight'),
+                    InlineKeyboardButton("Просмотр монстров", callback_data='monsters'),
+                ],
+                [
+                    InlineKeyboardButton('Настройки игры', callback_data='game_settings')
+                ]
+            ])
+            nickname = database_manager.get_gamename(id)
+            if query is None:
+                update.message.reply_text(f'Добро пожаловать в игру, {nickname}!\n\n'
+                                          f'Чем хотите заняться?', reply_markup=reply_markup)
+            else:
+                query.edit_message_text(f'Добро пожаловать в игру, {nickname}!\n\n'
+                                        f'Чем хотите заняться?', reply_markup=reply_markup)
+        else:
+            update.message.reply_text('Вы не авторизованы, чтобы играть нужно авторизоваться.')
+
+
 #
 #
 # def team_or_collection(update: Update, context: CallbackContext):  # выбор, что смотреть: коллекция или команда
@@ -459,10 +487,13 @@ def profile(update: Update, context: CallbackContext):
 
 # Пример функционала игры
 def show_game_example(update: Update, context: CallbackContext):
-    update.message.reply_text(result1)
-    update.message.reply_text(result2)
-    update.message.reply_text(result3)
-    update.message.reply_text(result4)
+    pass
+
+
+#     update.message.reply_text(result1)
+#     update.message.reply_text(result2)
+#     update.message.reply_text(result3)
+#     update.message.reply_text(result4)
 
 
 # def game_settings(update: Update, context: CallbackContext):  # настройки игры

@@ -53,6 +53,10 @@ def create_room(update: Update, context: CallbackContext) -> None:
     context.chat_data['stage'] = Stage.PLAY_GAME
 
 
+def close_room(update: Update, context: CallbackContext, room_name) -> None:
+    del rooms[room_name]
+
+
 def join_room(update: Update, context: CallbackContext) -> None:
     for roomKey in rooms:
         if rooms[roomKey].count_players <= 2:
@@ -96,9 +100,10 @@ def test_game(update: Update, context: CallbackContext, room) -> None:
             context.bot.send_message(chat_id=i, text='.')
             context.bot.send_message(chat_id=i, text='.')
             context.bot.send_message(chat_id=i, text='.')
+            context.bot.send_message(chat_id=i,
+                                     text=f'Раунд номер {room.count_round}\nДелайте свой ход и ждите противник')
         except Exception as exception:
             print(exception)
-    update.effective_user.send_message(text=f'Раунд номер {room.count_round}')
 
     # text = update.message.text
     # if text == 'hello':
@@ -123,10 +128,30 @@ def send_message_opponent(update: Update, context: CallbackContext) -> None:
         room.round_data[user_data] = text
 
     if len(room.round_data) == 2:
-        for user_id in room.player_list:
-            context.bot.send_message(chat_id=user_id, text=f'ход совершён')
-        for user_id in room.round_data:
-            context.bot.send_message(chat_id=user_id, text=room.round_data[user_id])
+        print(room.round_data)
+        return finishing_PvP(update, context, room)
+        # for user_id in room.player_list:
+        #     context.bot.send_message(chat_id=user_id, text=f'ход совершён')
+        # for user_id in room.round_data:
+        #     context.bot.send_message(chat_id=user_id, text=room.round_data[user_id])
+        # room.count_round += 1
+        # for user_id in room.round_data:
+        #     context.bot.send_message(chat_id=user_id,
+        #                              text=f'Раунд номер {room.count_round}\nДелайте свой ход и ждите противника')
+        # room.round_data = {}
+
+
+def finishing_PvP(update: Update, context: CallbackContext, room) -> None:
+    for user_id in room.player_list:
+        try:
+            context.chat_data['stage'] = Stage.LOBBY
+            del context.chat_data['roomName']
+            del rooms[room.room_name]
+            context.bot.send_message(chat_id=user_id,
+                                     text='Битва закончилась, победила дружба\nПереходите в главное меню /main_menu')
+        except Exception as exception:
+            context.bot.send_message(chat_id=user_id,
+                                     text='Битва закончилась, победила дружба\nПереходите в главное меню /main_menu')
 
     # text = update.message.text
     # room_name = context.chat_data['roomName']
