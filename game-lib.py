@@ -2,7 +2,7 @@ from typing import Union
 import sqlite3
 import logging
 from math import floor, ceil
-from random import choices
+from random import choices, choice, randint
 
 
 logging.basicConfig(
@@ -84,6 +84,7 @@ class Monster_Template:
 
         # current stats in battle
         self.c_hp, self.c_atk, self.c_satk, self.c_speed = self.hp, self.atk, self.satk, self.speed
+        self.hp_m, self.atk_m, self.satk_m, self.speed_m = 1, 1, 1, 1
         self.shield = 0
         self.alive = True
 
@@ -168,12 +169,27 @@ class Monster_Template:
             lambda x: int(x / 100 * self.lvl),
             [self.base_hp + self.iv_hp, self.base_atk + self.iv_atk,
              self.base_satk + self.iv_satk, self.base_speed + self.iv_speed]))
+        self.hp_m, self.atk_m, self.satk_m, self.speed_m = 1, 1, 1, 1
 
         # current stats in battle
-        self.c_hp, self.c_atk, self.c_satk, self.c_speed = self.hp, self.atk, self.satk, self.speed
+        self.update_current_stats()
 
         logging.debug(f"{self.name} stats rebuilded"
                       f"{self.get_stats()} - {self.get_current_stats()}")
+
+    def update_current_stats(self, hp=True):
+        if any(map(lambda x: not (0.2 < x < 5), [self.hp_m, self.atk_m, self.satk_m, self.speed_m])):
+            self.hp_m, self.atk_m, self.satk_m, self.speed_m = \
+                map(lambda x: clamp(0.2, 5, x), [self.hp_m, self.atk_m, self.satk_m, self.speed_m])
+
+        self.c_atk, self.c_satk, self.c_speed = \
+            self.atk * self.atk_m, self.satk * self.satk_m, self.speed * self.speed_m
+
+        if hp:
+            self.c_hp = self.hp * self.hp_m
+
+        logging.debug(f"{self.name} stats updated"
+                      f"{self.get_current_stats()}")
 
     def reset(self):
         self.rebuild_stats()
@@ -246,7 +262,7 @@ class Monster_Template:
         return self
 
     def get_damage(self, amount: float, true=False):
-        logging.info(f"{self.name} got damaged for {amount} (true={true})")
+        logging.info(f"{self.name} got damaged for {floor(amount)} (true={true})")
 
         if true:
             self.c_hp -= floor(amount)
@@ -257,6 +273,8 @@ class Monster_Template:
                     amount = -self.shield
                     self.shield = 0
                     self.c_hp -= amount
+            else:
+                self.c_hp -= floor(amount)
 
         self.death_check()
 
@@ -277,6 +295,12 @@ class Monster_Template:
                     self.skills[choices([0, 1, 2, 3], k=1)[0]] = self.skills_rule[step]
             else:
                 return
+
+    def generate_ivs(self):
+        self.iv_hp, self.iv_atk, self.iv_satk, self.iv_speed = (randint(0, 24) for _ in range(4))
+
+    def get_ivs(self):
+        return f"hp={self.iv_hp}, atk={self.iv_atk}, satk={self.iv_satk}, speed={self.iv_speed}"
 
 
 class Spylit(Monster_Template):
@@ -361,7 +385,7 @@ class Skill_Template:
 
     def use(self, owner: Monster_Template, target: Monster_Template):
         if choices([True, False], weights=[self.c_accuracy, 100 - self.c_accuracy], k=1)[0]:
-            logging.info(f"{owner.name} uses {self.name}")
+            logging.info(f"{owner.name} uses {self.name} ({self.c_accuracy})")
 
             if self.stat == "atk":
                 atk = owner.c_atk
@@ -371,7 +395,7 @@ class Skill_Template:
             self.c_accuracy -= self.accuracy
             target.get_damage(self.power / 100 * atk)
         else:
-            logging.info(f"{owner.name} tried to use {self.name}, but failed")
+            logging.info(f"{owner.name} tried to use {self.name}, but failed with chance {self.c_accuracy}%")
 
 
 class Slash(Skill_Template):
@@ -387,12 +411,14 @@ class Screech(Skill_Template):
 
     def use(self, owner: Monster_Template, target: Monster_Template):
         if choices([True, False], weights=[self.c_accuracy, 100 - self.c_accuracy], k=1)[0]:
-            logging.info(f"{owner.name} uses {self.name}")
+            logging.info(f"{owner.name} uses {self.name} ({self.c_accuracy})")
 
-            target.c_atk = int(target.c_atk * 0.8)
-            target.c_satk = int(target.c_satk * 0.8)
+            target.atk_m = target.atk_m * 0.8
+            target.satk_m = target.satk_m * 0.8
+
+            self.c_accuracy -= self.accuracy
         else:
-            logging.info(f"{owner.name} tried to use {self.name}, but failed")
+            logging.info(f"{owner.name} tried to use {self.name}, but failed with chance {self.c_accuracy}%")
 
 
 class Battle:
@@ -403,29 +429,73 @@ class Battle:
         self.blue_player = blue_player
         self.blue_team = blue_team
         self.blue_active = blue_team[0]
+        self.blue_last = ''
 
         self.red_player = red_player
         self.red_team = red_team
         self.red_active = red_team[0]
+        self.red_last = ''
 
     def print(self):
         return f"{self.blue_active.battle_stats()}\n\n{self.red_active.battle_stats()}"
 
-    def turn(self):
-        pass
+    def red_turn(self, schoice):
+        if self.red_active.skills[schoice].name != self.red_last:
+            for skill in self.red_active.skills:
+                if skill is not None:
+                    skill.c_accuracy = 100
+        self.red_active.skills[schoice].use(self.red_active, self.blue_active)
+        self.red_last = self.red_active.skills[schoice].name
+
+    def blue_turn(self, schoice):
+        if self.blue_active.skills[schoice].name != self.blue_last:
+            for skill in self.blue_active.skills:
+                if skill is not None:
+                    skill.c_accuracy = 100
+        self.blue_active.skills[schoice].use(self.blue_active, self.red_active)
+        self.blue_last = self.blue_active.skills[schoice].name
+
+    def battle(self):
+        while all(map(lambda x: x.alive, self.blue_team)) and\
+                all(map(lambda x: x.alive, self.red_team)):
+            red_choice = randint(0, 3 - self.red_active.skills.count(None))
+            blue_choice = randint(0, 3 - self.blue_active.skills.count(None))
+
+            if self.red_active.c_speed > self.blue_active.c_speed:
+                self.red_turn(red_choice)
+                self.blue_turn(blue_choice)
+            elif self.red_active.c_speed < self.blue_active.c_speed:
+                self.blue_turn(blue_choice)
+                self.red_turn(red_choice)
+            else:
+                if choice([True, False]):
+                    self.red_turn(red_choice)
+                    self.blue_turn(blue_choice)
+                else:
+                    self.blue_turn(blue_choice)
+                    self.red_turn(red_choice)
+
+            self.update()
+        print('gg')
+
+    def update(self):
+        for monster in self.blue_team + self.red_team:
+            monster.update_current_stats(hp=False)
+
+        print(self.print())
 
     def start(self):
         self.blue_active.on_change()
         self.red_active.on_change()
 
-        self.turn()
+        self.battle()
 
 
 test = Spylit(shiny=True, lvl=15)
 test.generate_skills()
 
-dummy = Spyland(lvl=20)
+dummy = Spyland(lvl=15)
 dummy.generate_skills()
 
 battle = Battle(None, [test], None, [dummy])
-print(battle.print())
+battle.start()
