@@ -202,19 +202,46 @@ def choose_fst_monster(update: Update, context: CallbackContext):  # выбор 
 def registration(update: Update, context: CallbackContext, monster_class): # завершение регистрации
     user_id = update.effective_user.id
     name = database_manager.get_gamename(user_id)
-    monster_id = monster_class.get_name()  # поменять на id !!!!
-    team = [monster_id, 'empty', 'empty', 'empty']
-    change_team(update, context, team)
-    database_manager.add_monster(monster_id, 1, 0, False)
-    update.effective_user.send_message(f"Вы успешно зарегистрировались.\n\nВаше имя в игре {name}\n"
-                                       f"Вы всегда можете его изменить, вызвав команду /game_settings\n\n"
-                                       f"Чтобы выйти в главное меню, введите команду /main_menu")
+    amount_monsters = database_manager.get_amount_monsters() + 1
+    if check_add_monster(update, context, monster_class.uid):
+        database_manager.add_monster(id=amount_monsters, uid=monster_class.uid, name=monster_class.name,
+                                 level=1, exp=0, shiny=False)
+        team = str(amount_monsters) + ';'
+        change_team(update, context, team)
+        change_collection(update, context, amount_monsters)
+        update.effective_user.send_message(f"Вы успешно зарегистрировались.\n\nВаше имя в игре {name}\n"
+                                        f"Вы всегда можете его изменить, вызвав команду /game_settings\n\n"
+                                        f"Чтобы выйти в главное меню, введите команду /main_menu")
+    else:
+        print('this monster is already in team and in collection')
+
+
+def check_add_monster(update: Update, context: CallbackContext, uid):  # проверка, есть ли новый монстр уже у игрока
+    team = database_manager.get_team(update.effective_user.id).split(';')
+    # collection = database_manager.get_collection(update.effective_user.id)
+    temp = True
+    for i in range(len(team)):
+        if team[i] != str(uid):
+            temp = True
+        else:
+            temp = False
+    if temp:
+        return True
+    else:
+        return False
 
 
 def change_team(update: Update, context: CallbackContext, team):  # изменение команды
     user_id = update.effective_user.id
-    final_team = f'{team[0]};{team[1]};{team[2]};{team[3]}'
-    database_manager.change_user_team(user_id, final_team)
+    # final_team = f'{str(team[0])};{str(team[1])};{str(team[2])};{str(team[3])}'
+    database_manager.change_user_team(user_id, team)
+
+
+def change_collection(update: Update, context: CallbackContext, new_monster):
+    user_id = update.effective_user.id
+    old_collection = database_manager.get_collection(user_id)
+    new_collection = old_collection + ';' + str(new_monster)
+    database_manager.change_user_collection(user_id, new_collection)
 
 
 def main_menu(update: Update, context: CallbackContext):  # главное меню
@@ -359,11 +386,24 @@ def delete_user(update: Update, context: CallbackContext):
     query = update.callback_query
     try:
         id = update.effective_user.id
-        if database_manager.delete_user(id=id):
+        if delete_monsters_users(update, context) and database_manager.delete_user(id=id):
             query.edit_message_text('Удаление прошло успешно')
     except Exception as exception:
         print(exception)
         query.edit_message_text('Произошла ошибка при удалении пользователя, повторите попытку позже.')
+
+
+def delete_monsters_users(update: Update, context: CallbackContext):
+    try:
+        user_id = update.effective_user.id
+        team = database_manager.get_team(user_id).split(';')
+        for monster_id in team:
+            if monster_id != '':
+                database_manager.delete_monster(int(monster_id))
+        return True
+    except Exception as ex:
+        print(ex)
+        return False
 
 
 # Предложение удалить пользователя
@@ -441,6 +481,16 @@ def game_settings(update: Update, context: CallbackContext):  # настройк
         update.message.reply_text('Что вы хотите сделать?', reply_markup=keyboard)
 
 
+def full_registration(update: Update, context: CallbackContext):  # проверка на то, выбрал ли игрок первого монстра
+    user_id = update.effective_user.id
+    team = database_manager.get_team(user_id).split(';')
+    amount_monsters = database_manager.get_amount_monsters()
+    if team[0] == '' and amount_monsters == 0:
+        return False
+    else:
+        return True
+
+
 # Начальная функция. Проверяет есть ли аккаунт или нет, регистрация
 def start(update: Update, context: CallbackContext) -> None:
     id = update.effective_user.id
@@ -448,9 +498,8 @@ def start(update: Update, context: CallbackContext) -> None:
     update.message.reply_text('Добро пожаловать. Для начала пройдите авторизацию.')
     if check_user(update=update, context=context):
         database_manager.is_authorised_abled(id=id)
-        team = database_manager.get_team(id).split(';')   # проверка на то, выбрал ли игрок первого монстра
 
-        if team[0] == 'empty':
+        if not full_registration(update, context):
             update.message.reply_text('Вы ещё не закончили регистрацию')
             choose_fst_monster(update, context)
         else:

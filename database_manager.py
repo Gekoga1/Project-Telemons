@@ -14,13 +14,15 @@ class User:
             username      TEXT    NOT NULL,
             game_name     TEXT    UNIQUE,
             is_authorised BOOLEAN NOT NULL,
-            team    TEXT 
+            team    TEXT,
+            collection TEXT
         );
         """
         req = """CREATE TABLE IF NOT EXISTS users_monsters (
-            id    INTEGER PRIMARY KEY AUTOINCREMENT
+            id    INTEGER PRIMARY KEY 
                           UNIQUE
                         NOT NULL,
+            uid INTEGER NOT NULL,
             name  TEXT    NOT NULL,
             level INTEGER NOT NULL,
             exp   INTEGER NOT NULL,
@@ -34,19 +36,21 @@ class User:
         except Exception as exception:
             print(exception)
 
-    def add_monster(self, name, level, exp, shiny):
+    def add_monster(self, id, uid, name, level, exp, shiny):
         try:
-            req = """INSERT INTO users_monsters (name, level, exp, shiny) VALUES (?, ?, ?, ?)"""
-            self.cursor.execute(req, (name, level, exp, shiny))
+            req = """INSERT INTO users_monsters VALUES (?, ?, ?, ?, ?, ?)"""
+            self.cursor.execute(req, (id, uid, name, level, exp, shiny))
             self.connection.commit()
         except Exception as ex:
+            print(1)
             print(ex)
 
     def add_user(self, id, username, game_name):
-        team = 'empty;empty;empty;empty'
+        team = ''
+        collection = ''
         try:
-            request = f"""INSERT INTO users VALUES(?, ?, ?, ?, ?)"""
-            self.cursor.execute(request, (id, username, game_name, True, team))
+            request = f"""INSERT INTO users VALUES(?, ?, ?, ?, ?, ?)"""
+            self.cursor.execute(request, (id, username, game_name, True, team, collection))
             self.connection.commit()
             return True
         except Exception as exception:
@@ -93,6 +97,14 @@ class User:
         except Exception as ex:
             print(ex)
 
+    def change_user_collection(self, user_id, collection):
+        try:
+            req = """UPDATE users SET collection = ? WHERE id = ?"""
+            self.cursor.execute(req, (collection, user_id,))
+            self.connection.commit()
+        except Exception as ex:
+            print(ex)
+
     def check_is_authorised(self, id):
         try:
             request = """SELECT is_authorised FROM users WHERE id = ?"""
@@ -133,13 +145,24 @@ class User:
         res = self.cursor.execute(req, (user_id,)).fetchone()
         return ''.join(res)
 
-    def get_monster_id(self, name):
-        req = """SELECT id FROM monsters WHERE name = ?"""
-        res = self.cursor.execute(req, (name,))
-        return ''.join(res)
-
     def get_team(self, user_id):
         req = """SELECT team FROM users WHERE id = ?"""
+        res = self.cursor.execute(req, (user_id,)).fetchone()
+        return ''.join(res)
+
+    def delete_monster(self, monster_id):
+        req = """DELETE FROM users_monsters WHERE id = ?"""
+        self.cursor.execute(req, (monster_id,))
+        self.connection.commit()
+
+    def get_amount_monsters(self):
+        req = """SELECT id FROM users_monsters"""
+        res = self.cursor.execute(req).fetchall()
+        amount_monsters = len(res)
+        return amount_monsters
+
+    def get_collection(self, user_id):
+        req = """SELECT collection FROM users WHERE id = ?"""
         res = self.cursor.execute(req, (user_id,)).fetchone()
         return ''.join(res)
 
