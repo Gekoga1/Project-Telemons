@@ -90,6 +90,10 @@ class Monster_Template:
 
         self.statuses = []
 
+    def __copy__(self):
+        return self.__class__(uid=self.uid, lvl=self.lvl, exp=self.exp,
+                              iv=(0, 0, 0, 0), shiny=self.shiny, skills=self.skills, owner=None)
+
     def on_change(self):
         pass
 
