@@ -19,7 +19,7 @@ def collection_info(update: Update, context: CallbackContext):  # вывод в�
     collection = get_collection_info(update, context)
     msg = 'Ваши монстры:\n\n'
     for i in range(len(collection)):
-        msg += f'{i + 1}. {collection[i][0]}, уровень: {str(collection[i][1])}, опыт: {str(collection[i][2])}\n'
+        msg += f'{i + 1}. {collection[i][0]}\n'
     update.effective_user.send_message(text=msg)
     monster_choice(update, context)
 
@@ -40,6 +40,7 @@ def monster_choice(update: Update, context: CallbackContext):  # спрашив�
 def get_monster_num(update: Update, context: CallbackContext):  # получает номер монстра
     try:
         monster_num = int(update.message.text)
+        context.chat_data['monster_num'] = monster_num
         ques = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton('Заменить монстра', callback_data='change monster'),
@@ -57,7 +58,11 @@ def get_monster_num(update: Update, context: CallbackContext):  # получае
 
 
 def monster_info(update: Update, context: CallbackContext):  # информация о монстре
-    update.effective_user.send_message(text='Здесь выводится инфа о монстре')
+    collection = get_collection_info(update, context)
+    monster_num = context.chat_data['monster_num']
+    text = f'Монстр: {collection[monster_num - 1][0]}\nУровень: {collection[monster_num - 1][1]}\n' \
+           f'Опыт: {collection[monster_num - 1][2]}'
+    update.effective_user.send_message(text=text)
     monster_activity(update, context)
 
 
@@ -99,7 +104,18 @@ def show_ability_list(update: Update, context: CallbackContext,
     update.message.reply_text('Здесь выводится список доступных способностей')
 
 
-def team_info(update: Update, context: CallbackContext):  # информация о команде
+def team_info(update: Update, context: CallbackContext):
+    user_id = update.effective_user.id
+    monsters_id = database_manager.get_team(user_id).split(';')
+    team = [database_manager.get_monster_info(int(i)) for i in monsters_id if i != '']
+    text = 'Ваша команда:\n\n'
+    for monster in team:
+        text += f'{monster[0]}, уровень: {monster[1]}, опыт: {monster[2]}\n'
+    update.effective_user.send_message(text=text)
+    team_activity(update, context)
+
+
+def team_activity(update: Update, context: CallbackContext):  # информация о команде
     change_ques = InlineKeyboardMarkup([
         [
             InlineKeyboardButton('Да', callback_data='change team'),
