@@ -166,3 +166,12 @@ class User:
         res = self.cursor.execute(req, (user_id,)).fetchone()
         return ''.join(res)
 
+    def get_monster_uid(self, id):
+        req = """SELECT uid FROM users_monsters WHERE id = ?"""
+        res = self.cursor.execute(req, (id,)).fetchone()
+        return ''.join(res)
+
+    def get_monster_info(self, monster_id):
+        req = """SELECT name, level, exp FROM users_monsters WHERE id = ?"""
+        res = self.cursor.execute(req, (monster_id,)).fetchone()
+        return res

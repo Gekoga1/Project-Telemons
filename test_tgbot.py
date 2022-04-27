@@ -217,18 +217,12 @@ def registration(update: Update, context: CallbackContext, monster_class): # з�
 
 
 def check_add_monster(update: Update, context: CallbackContext, uid):  # проверка, есть ли новый монстр уже у игрока
-    team = database_manager.get_team(update.effective_user.id).split(';')
-    # collection = database_manager.get_collection(update.effective_user.id)
-    temp = True
-    for i in range(len(team)):
-        if team[i] != str(uid):
-            temp = True
-        else:
-            temp = False
-    if temp:
-        return True
-    else:
+    collection = database_manager.get_collection(update.effective_user.id).split(';')
+    uid_in_coll = [database_manager.get_monster_uid(int(i)) for i in collection if i != '']
+    if uid in uid_in_coll:
         return False
+    else:
+        return True
 
 
 def change_team(update: Update, context: CallbackContext, team):  # изменение команды
@@ -276,8 +270,19 @@ def team_or_collection(update: Update, context: CallbackContext):  # выбор,
 
 
 def collection_info(update: Update, context: CallbackContext):  # вывод всей коллекции монстров
-    update.effective_user.send_message(text='Здесь выводится вся коллекция монстров игрока')
+    collection = get_collection_info(update, context)
+    msg = 'Ваши монстры:\n\n'
+    for i in range(len(collection)):
+        msg += f'{i + 1}. {collection[i][0]}, уровень: {str(collection[i][1])}, опыт: {str(collection[i][2])}\n'
+    update.effective_user.send_message(text=msg)
     monster_choice(update, context)
+
+
+def get_collection_info(update: Update, context: CallbackContext):
+    user_id = update.effective_user.id
+    monsters_id = database_manager.get_collection(user_id).split(';')
+    collection = [database_manager.get_monster_info(int(i)) for i in monsters_id if i != '']
+    return collection
 
 
 def monster_choice(update: Update, context: CallbackContext):  # спрашивает номер монстра
