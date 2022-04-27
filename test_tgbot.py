@@ -3,10 +3,10 @@ import logging
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler, MessageHandler, Filters
 
-from Room import Room, Stage
+from creating_rooms.Room import Room, Stage
 from database_manager import User
-from game_lib import result1, result2, result3, result4, Monster_Template
-from secrets import API_TOKEN
+from game_logic.game_lib import result1, result2, result3, result4, Monster_Template
+from configure.secrets import API_TOKEN
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
