@@ -4,6 +4,8 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryH
 
 from authorisation import *
 from configure.secrets import API_TOKEN
+from configure.configuraion import teams
+from game_logic.game_lib import *
 from fighting import *
 # from game_logic.game_lib import result1, result2, result3, result4
 from monsters import *
@@ -74,6 +76,8 @@ def check_query(update: Update, context: CallbackContext) -> None:
     # elif query.data in rooms.keys():
     #     select_room(update, context)
     #     context.chat_data['stage'] = Stage.PLAYING_GAME
+    elif query.data in teams[update.effective_user.id]:
+        change_current_monster()
     elif query.data == 'monsters':
         team_or_collection(update, context)
     elif query.data == 'team':
@@ -272,6 +276,7 @@ def main_menu(update: Update, context: CallbackContext):  # главное ме�
                     ]
                 ])
                 nickname = database_manager.get_gamename(id)
+                teams[update.effective_user.id] = [test, test.copy(), test.copy(), test.copy()]
                 if query is None:
                     update.message.reply_text(f'Добро пожаловать в игру, {nickname}!\n\n'
                                               f'Чем хотите заняться?', reply_markup=reply_markup)

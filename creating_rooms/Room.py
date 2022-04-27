@@ -1,5 +1,7 @@
 from enum import Enum
 
+from game_logic.game_lib import *
+
 
 class Room:
     room_name: str
@@ -9,6 +11,7 @@ class Room:
     round_data: dict
     author_id: str
     player_id: str
+    room_battle: Battle
     score: int
 
     def __init__(self):

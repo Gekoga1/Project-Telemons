@@ -3,8 +3,12 @@ import random
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext
 
-from configure.configuraion import rooms
+from configure.configuraion import rooms, teams
 from creating_rooms.Room import Room, Stage
+from game_logic.game_lib import *
+
+
+
 
 
 def choose_type_fight(update: Update, context: CallbackContext):
@@ -43,6 +47,7 @@ def create_room(update: Update, context: CallbackContext) -> None:
     room.count_players = 0
     room.player_list = []
     room.round_data = {}
+
 
     query.edit_message_text(
         text='Подходящих комнат не нашлось, поэтому комната была создана.\nВы уже находитесь в ней, ждите пользователей')
@@ -89,6 +94,7 @@ def show_room(update: Update, context: CallbackContext, room) -> None:
     query.edit_message_text(text=f'Проверка проверка, это комната {room.room_name}\n')
     if room.count_players == 2:
         room.count_round = 1
+        room.room_battle = Battle(None, teams[room.player_list[0]], None, teams[room.player_list[1]])
         test_game(update=update, context=context, room=room)
 
 
@@ -97,11 +103,9 @@ def test_game(update: Update, context: CallbackContext, room) -> None:
     for i in room.player_list:
         try:
             context.bot.send_message(chat_id=i, text='Игра началась')
-            context.bot.send_message(chat_id=i, text='.')
-            context.bot.send_message(chat_id=i, text='.')
-            context.bot.send_message(chat_id=i, text='.')
             context.bot.send_message(chat_id=i,
                                      text=f'Раунд номер {room.count_round}\nДелайте свой ход и ждите противник')
+            context.bot.send_message(chat_id=i, text=room.battle.print(reverse=True))
         except Exception as exception:
             print(exception)
 
@@ -128,9 +132,20 @@ def send_message_opponent(update: Update, context: CallbackContext) -> None:
         room.round_data[user_data] = text
 
     if len(room.round_data) == 2:
-        print(room.round_data)
-        return finishing_PvP(update, context, room)
-        # for user_id in room.player_list:
+        for user_id in room.round_data:
+            data = room.round_data[user_id]
+            if data == 'смена':
+                pass
+            elif data == '1':
+                pass
+            elif data == '2':
+                pass
+            elif data == '3':
+                pass
+            elif data == '4':
+                pass
+            else:
+                context.bot.send_message(chat_id=user_id, text='Я не понимаю ваших действий')
         #     context.bot.send_message(chat_id=user_id, text=f'ход совершён')
         # for user_id in room.round_data:
         #     context.bot.send_message(chat_id=user_id, text=room.round_data[user_id])
@@ -139,6 +154,9 @@ def send_message_opponent(update: Update, context: CallbackContext) -> None:
         #     context.bot.send_message(chat_id=user_id,
         #                              text=f'Раунд номер {room.count_round}\nДелайте свой ход и ждите противника')
         # room.round_data = {}
+
+def change_current_monster(update: Update, context: CallbackContext, monster) -> None:
+    pass
 
 
 def finishing_PvP(update: Update, context: CallbackContext, room) -> None:
