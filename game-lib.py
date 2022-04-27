@@ -440,8 +440,11 @@ class Battle:
         self.red_active = red_team[0]
         self.red_last = ''
 
-    def print(self):
-        return f"{self.blue_active.battle_stats()}\n\n{self.red_active.battle_stats()}"
+    def print(self, reverse=False):
+        if reverse:
+            return f"{self.blue_active.battle_stats()}\n\n{self.red_active.battle_stats()}"
+        else:
+            return f"{self.red_active.battle_stats()}\n\n{self.blue_active.battle_stats()}"
 
     def red_turn(self, schoice):
         if self.red_active.skills[schoice].name != self.red_last:
