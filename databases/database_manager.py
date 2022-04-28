@@ -45,9 +45,7 @@ class User:
             print(1)
             print(ex)
 
-    def add_user(self, id, username, game_name):
-        team = ''
-        collection = ''
+    def add_user(self, id, username, game_name, team, collection):
         try:
             request = f"""INSERT INTO users VALUES(?, ?, ?, ?, ?, ?)"""
             self.cursor.execute(request, (id, username, game_name, True, team, collection))
@@ -155,11 +153,10 @@ class User:
         self.cursor.execute(req, (monster_id,))
         self.connection.commit()
 
-    def get_amount_monsters(self):
+    def get_monsters_ids(self):
         req = """SELECT id FROM users_monsters"""
         res = self.cursor.execute(req).fetchall()
-        amount_monsters = len(res)
-        return amount_monsters
+        return res
 
     def get_collection(self, user_id):
         req = """SELECT collection FROM users WHERE id = ?"""
@@ -172,6 +169,11 @@ class User:
         return ''.join(res)
 
     def get_monster_info(self, monster_id):
-        req = """SELECT name, level, exp FROM users_monsters WHERE id = ?"""
+        req = """SELECT id, name, level, exp FROM users_monsters WHERE id = ?"""
         res = self.cursor.execute(req, (monster_id,)).fetchone()
         return res
+
+    def get_monster_name(self, monster_id):
+        req = """SELECT name FROM users_monsters WHERE id = ?"""
+        res = self.cursor.execute(req, (monster_id,)).fetchone()
+        return ''.join(res)
