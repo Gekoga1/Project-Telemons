@@ -86,6 +86,10 @@ def check_query(update: Update, context: CallbackContext) -> None:
         select_monster(update, context)
     elif context.chat_data['waiting_for'] == COLLECTION_TEAM:
         select_monster_in_team(update, context)
+    elif query.data == 'want evolution':
+        want_evolution(update, context)
+    elif query.data == 'evolution':
+        evolution(update, context)
     else:
         query.edit_message_text('Я вас не понимаю, повторите попытку ввода.')
 
