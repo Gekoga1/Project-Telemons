@@ -446,6 +446,24 @@ class Battle:
         else:
             return f"{self.red_active.battle_stats()}\n\n{self.blue_active.battle_stats()}"
 
+    def change(self, player, new):
+        if player == 0:
+            if self.blue_active != self.blue_team[new] and self.blue_team[new].alive:
+                self.blue_active = self.blue_team[new]
+                self.blue_active.on_change()
+                
+                return True
+            else:
+                return False
+        elif player == 1:
+            if self.red_active != self.red_team[new] and self.red_team[new].alive:
+                self.red_active = self.red_team[new]
+                self.red_active.on_change()
+
+                return True
+            else:
+                return False
+
     def red_turn(self, schoice):
         if self.red_active.skills[schoice].name != self.red_last:
             for skill in self.red_active.skills:
