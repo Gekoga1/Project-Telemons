@@ -142,12 +142,3 @@ class Monster_Template:
             self.exp -= 100
             self.lvl_up()
 
-
-test = Monster_Template(1, shiny=True)
-result1 = test.battle_stats()
-test.get_exp(100)
-result2 = test.battle_stats()
-test.get_exp(1000)
-result3 = test.battle_stats()
-test.get_exp(-200)
-result4 = test.battle_stats()

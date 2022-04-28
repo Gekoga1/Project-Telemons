@@ -81,11 +81,25 @@ def monster_activity(update: Update, context: CallbackContext):  # предла�
             InlineKeyboardButton('Заменить способность', callback_data='change ability')
         ],
         [
-            InlineKeyboardButton('Эволюционировать', callback_data='evolution'),
+            InlineKeyboardButton('Эволюционировать', callback_data='want evolution'),
             InlineKeyboardButton('Заменить монстра', callback_data='change monster')
         ]
     ])
     update.effective_user.send_message(text='Что вы хотите сделать?', reply_markup=ques)
+
+
+def want_evolution(update: Update, context: CallbackContext):
+    ques = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton('Да', callback_data='evolution'),
+            InlineKeyboardButton('Нет', callback_data='main menu')
+        ]
+    ])
+    update.effective_user.send_message('Вы точно хотите попробовать провести эволюцию монстра?', reply_markup=ques)
+
+
+def evolution(update: Update, context: CallbackContext):
+    need_monster = context.chat_data['collection_num']
 
 
 def show_team_for_change(update: Update, context: CallbackContext):
