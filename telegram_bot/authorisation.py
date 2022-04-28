@@ -18,8 +18,7 @@ def name_from_telegram(update: Update, context: CallbackContext):  # имя из
 
 
 def choose_fst_monster(update: Update, context: CallbackContext):  # выбор стартового монстра
-    context.chat_data['waiting for'] = NOTHING
-    print(12)
+    context.chat_data['waiting_for'] = NOTHING
     ques = InlineKeyboardMarkup([
         [
             InlineKeyboardButton('Каменный паук', callback_data='spylit'),

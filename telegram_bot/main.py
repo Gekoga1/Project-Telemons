@@ -39,7 +39,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'delete_no':
         query.edit_message_text('Процесс отменён')
     elif query.data == 'nickname':
-        context.chat_data['waiting for'] = NICKNAME
+        context.chat_data['waiting_for'] = NICKNAME
         query.edit_message_text('Введите свой ник')
         write_nickname(update, context)
     elif query.data == 'tg_name':
@@ -91,7 +91,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
 def process_message(update: Update, context: CallbackContext):  # обработчик текстовых сообщений
     if context.chat_data['waiting_for'] == MONSTER_NUM:
         get_monster_num(update, context)
-    elif context.chat_data['waiting for'] == NICKNAME:
+    elif context.chat_data['waiting_for'] == NICKNAME:
         write_nickname(update, context)
     elif context.chat_data['waiting_for'] == ABILITY_NUM:
         get_ability_num(update, context)

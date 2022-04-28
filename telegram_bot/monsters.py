@@ -19,10 +19,15 @@ def team_or_collection(update: Update, context: CallbackContext):  # выбор,
 def collection_info(update: Update, context: CallbackContext):  # вывод всей коллекции монстров
     collection = get_collection_info(update, context)
     msg = 'Ваши монстры:\n\n'
-    for i in range(len(collection)):
-        msg += f'{i + 1}) {collection[i][1]}\n'
-    update.effective_user.send_message(text=msg)
-    monster_choice(update, context)
+    if len(collection) == 0:
+        update.effective_user.send_message('У Вас ещё нет монстров в коллекции, сыграйте в PVE бой, '
+                                           'чтобы получить нового монстра')
+        main_menu(update, context)
+    else:
+        for i in range(len(collection)):
+            msg += f'{i + 1}) {collection[i][1]}\n'
+        update.effective_user.send_message(text=msg)
+        monster_choice(update, context)
 
 
 def get_collection_info(update: Update, context: CallbackContext):  # получение информации о монстрах из коллекции
@@ -134,10 +139,8 @@ def change_team(update: Update, context: CallbackContext, team):  # измене
     update.effective_message.reply_text('Команда успешно изменена')
 
 
-def change_collection(update: Update, context: CallbackContext, new_monster, send_back=False):  # добавление монстра в коллекцию игрока
+def change_collection(update: Update, context: CallbackContext, new_collection):  # добавление монстра в коллекцию игрока
     user_id = update.effective_user.id
-    old_collection = database_manager.get_collection(user_id)
-    new_collection = old_collection + ';' + str(new_monster)
     database_manager.change_user_collection(user_id, new_collection)
 
 
@@ -158,9 +161,8 @@ def write_team_num(update: Update, context: CallbackContext):
 
 def get_team_num(update: Update, context: CallbackContext):
     try:
-        team_amount = len(database_manager.get_team(update.effective_user.id).split(';'))
         team_num = int(update.message.text)
-        if team_num > team_amount or team_num <= 0:
+        if team_num > 4 or team_num <= 0:
             raise Exception
         else:
             context.chat_data['team_num'] = team_num
@@ -193,9 +195,13 @@ def show_collection(update: Update, context: CallbackContext):
         keyboard.append(btns_in_row)
 
     text = 'Ваши монстры:\n\n'
-    for i in range(len(collection)):
-        text += f'{i + 1}. {collection[i][1]}\n'
-    update.effective_user.send_message(text=text, reply_markup=InlineKeyboardMarkup(keyboard))
+    if len(collection) == 0:
+        update.effective_user.send_message('У вас больше нет монстров, сыграйте в бой PvE,'
+                                           ' чтобы получить нового монстра')
+    else:
+        for i in range(len(collection)):
+            text += f'{i + 1}. {collection[i][1]}\n'
+        update.effective_user.send_message(text=text, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
 def select_monster(update: Update, context: CallbackContext):
@@ -207,15 +213,31 @@ def select_monster(update: Update, context: CallbackContext):
 
 def change_monster(update: Update, context: CallbackContext):
     team = database_manager.get_team(update.effective_user.id).split(';')
+    collection = database_manager.get_collection(update.effective_user.id).split(';')
     team_num = context.chat_data['team_num']
     coll_num = context.chat_data['collection_num']
     new_team = ''
-    for i in range(len(team)):
-        if i == team_num - 1:
-            new_team += f'{str(coll_num)};'
-        elif team[i] != '':
-            new_team += f'{team[i]};'
-    change_team(update, context, new_team)
+    new_collection = ''
+    try:
+        for i in range(len(team) + 1):
+            print(i)
+            if i == team_num - 1:
+                print(coll_num)
+                new_team += f'{str(coll_num)};'
+                new_collection += f'{team[i]}'
+            elif team[i] != '':
+                new_team += f'{team[i]};'
+            else:
+                new_team += f'{str(coll_num)}'
+    except Exception as ex:
+        print(ex)
+    for i in range(len(collection)):
+        if collection[i] == str(coll_num):
+            new_collection += ''
+        else:
+            new_collection += f'{collection[i]}'
+    change_team(update, context, new_team[:-1])
+    change_collection(update, context, new_collection)
     text = f'Новая команда:\n\n'
     monsters_id = database_manager.get_team(update.effective_user.id).split(';')
     new_team = [database_manager.get_monster_info(int(i)) for i in monsters_id if i != '']
