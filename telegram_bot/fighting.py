@@ -1,10 +1,9 @@
-import random
-
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import CallbackContext
 
-from configure.configuraion import rooms
+from configure.configuraion import rooms, teams
 from creating_rooms.Room import Room, Stage
+from game_logic.game_lib import *
 
 
 def choose_type_fight(update: Update, context: CallbackContext):
@@ -89,19 +88,25 @@ def show_room(update: Update, context: CallbackContext, room) -> None:
     query.edit_message_text(text=f'Проверка проверка, это комната {room.room_name}\n')
     if room.count_players == 2:
         room.count_round = 1
+        room.blue_player = room.room.player_list[0]
+        room.red_player = room.room.player_list[1]
+        room.room_battle = Battle(None, teams[room.player_list[0]], None, teams[room.player_list[1]])
         test_game(update=update, context=context, room=room)
 
 
 def test_game(update: Update, context: CallbackContext, room) -> None:
-    first_player = random.choice(room.player_list)
-    for i in room.player_list:
+    # first_player = random.choice(room.player_list)
+    for j, i in enumerate(room.player_list):
         try:
+            reply_markup = ReplyKeyboardMarkup([['Атака 1', 'Атака 2', 'Атака 3', 'Атака 4', 'Смена персонажа']],
+                                               one_time_keyboard=False, resize_keyboard=True)
             context.bot.send_message(chat_id=i, text='Игра началась')
-            context.bot.send_message(chat_id=i, text='.')
-            context.bot.send_message(chat_id=i, text='.')
-            context.bot.send_message(chat_id=i, text='.')
             context.bot.send_message(chat_id=i,
                                      text=f'Раунд номер {room.count_round}\nДелайте свой ход и ждите противник')
+            if j == 0:
+                context.bot.send_message(chat_id=i, text=room.battle.print(reverse=True))
+            else:
+                context.bot.send_message(chat_id=i, text=room.battle.print(reverse=False))
         except Exception as exception:
             print(exception)
 
@@ -117,7 +122,7 @@ def test_game(update: Update, context: CallbackContext, room) -> None:
     #     update.message.reply_text(text='Вы не угадали слово')
 
 
-def send_message_opponent(update: Update, context: CallbackContext) -> None:
+def main_fight(update: Update, context: CallbackContext) -> None:
     room_name = context.chat_data['roomName']
     room = rooms[room_name]
 
@@ -125,12 +130,70 @@ def send_message_opponent(update: Update, context: CallbackContext) -> None:
     user_data = update.effective_user.id
 
     if user_data not in room.round_data:
-        room.round_data[user_data] = text
+        text_info = text.split()
+        if text_info[0] == 'Атака':
+            if room.player_list.index(user_data) == 0:
+                if room.room_battle.blue_active.skills[int(text_info[1])] is not None:
+                    room.round_data[user_data] = text
+                else:
+                    context.bot.send_message(chat_id=user_data, text='Ошибочный ввод')
+            else:
+                if room.room_battle.red_active.skills[int(text_info[1])] is not None:
+                    room.round_data[user_data] = text
+                else:
+                    context.bot.send_message(chat_id=user_data, text='Ошибочный ввод')
 
     if len(room.round_data) == 2:
-        print(room.round_data)
-        return finishing_PvP(update, context, room)
-        # for user_id in room.player_list:
+        change_happened = False
+        for user_id in room.round_data:
+            data = room.round_data[user_id]
+            data = data.split()
+            if data[0] == 'Смена':
+                change_happened = True
+                if user_id == room.blue_player:
+                    propose_change_monster(update, context, room.room_battle.blue_active, player_move='blue', room=room)
+
+        if change_happened:
+            if room.round_data[room.blue_player].split(' ')[0] == 'Атака':
+                room.room_battle.blue_turn(int(room.round_data[room.blue_player].split(' ')[1]) - 1)
+            elif room.round_data[room.red_player].split(' ')[0] == 'Атака':
+                room.room_battle.red_turn(int(room.round_data[room.blue_player].split(' ')[1]) - 1)
+        else:
+            if room.room_battle.red_active.c_speed > room.room_battle.blue_active.c_speed:
+                room.room_battle.red_turn(int(room.round_data[room.red_player].split(' ')[1]) - 1)
+                room.room_battle.blue_turn(int(room.round_data[room.blue_player].split(' ')[1]) - 1)
+            elif room.room_battle.red_active.c_speed < room.room_battle.blue_active.c_speed:
+                room.room_battle.blue_turn(int(room.round_data[room.blue_player].split(' ')[1]) - 1)
+                room.room_battle.red_turn(int(room.round_data[room.red_player].split(' ')[1]) - 1)
+            else:
+                if choice([True, False]):
+                    room.room_battle.red_turn(int(room.round_data[room.red_player].split(' ')[1]) - 1)
+                    room.room_battle.blue_turn(int(room.round_data[room.blue_player].split(' ')[1]) - 1)
+                else:
+                    room.room_battle.blue_turn(int(room.round_data[room.blue_player].split(' ')[1]) - 1)
+                    room.room_battle.red_turn(int(room.round_data[room.red_player].split(' ')[1]) - 1)
+
+        room.room_battle.update()
+
+        for j, i in enumerate(room.player_list):
+            if j == 0:
+                context.bot.send_message(chat_id=i, text=room.battle.print(reverse=True))
+            else:
+                context.bot.send_message(chat_id=i, text=room.battle.print(reverse=False))
+
+        if not room.room_battle.blue_active.alive:
+            pass
+        elif not room.room_battle.red_active.alive:
+            pass
+
+        if all(map(lambda x: not x.alive, room.room_battle.blue_team)):
+            context.bot.send_message(chat_id=room.red_player, text=f'Команда {1} выиграла!!!')
+            room.winner = room.red_player
+            finishing_PvP(update, context, room)
+        elif all(map(lambda x: not x.alive, room.room_battle.red_team)):
+            context.bot.send_message(chat_id=room.blue_player, text=f'Команда {2} выиграла!!!')
+            room.winner = room.blue_player
+            finishing_PvP(update, context, room)
         #     context.bot.send_message(chat_id=user_id, text=f'ход совершён')
         # for user_id in room.round_data:
         #     context.bot.send_message(chat_id=user_id, text=room.round_data[user_id])
@@ -138,20 +201,42 @@ def send_message_opponent(update: Update, context: CallbackContext) -> None:
         # for user_id in room.round_data:
         #     context.bot.send_message(chat_id=user_id,
         #                              text=f'Раунд номер {room.count_round}\nДелайте свой ход и ждите противника')
-        # room.round_data = {}
+        room.round_data = {}
+
+
+def propose_change_monster(update: Update, context: CallbackContext, monster, player_move, room):
+    context.chat_data['stage'] = Stage.CHANGE_MONSTER
+    buttons = []
+    if player_move == 'blue':
+        for member in room.room_battle.blue_team:
+            if member != monster:
+                buttons.append(InlineKeyboardButton(member, callback_data=member))
+    keyboard = [buttons]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.message.reply_text(text='Выберите на кого будете менять', reply_markup=reply_markup)
+
+
+def change_monster(update: Update, context: CallbackContext, monster, player_team):
+    room_name = context.chat_data['roomName']
+    room = rooms[room_name]
+    if player_team == room.blue_player:
+        room.room_battle.change(player=0, new=room.room_battle.blue_team.index(monster))
+    else:
+        room.room_battle.change(player=1, new=room.room_battle.blue_team.index(monster))
+    context.bot.send_message(chat_id=player_team, text='Монстр изменен')
 
 
 def finishing_PvP(update: Update, context: CallbackContext, room) -> None:
+    for member in teams[room.winner]:
+        member.get_exp(amount=100)
     for user_id in room.player_list:
         try:
             context.chat_data['stage'] = Stage.LOBBY
             del context.chat_data['roomName']
             del rooms[room.room_name]
-            context.bot.send_message(chat_id=user_id,
-                                     text='Битва закончилась, победила дружба\nПереходите в главное меню /main_menu')
+            context.bot.send_message(chat_id=user_id, text='Битва закончилась')
         except Exception as exception:
-            context.bot.send_message(chat_id=user_id,
-                                     text='Битва закончилась, победила дружба\nПереходите в главное меню /main_menu')
+            context.bot.send_message(chat_id=user_id, text='Битва закончилась')
 
     # text = update.message.text
     # room_name = context.chat_data['roomName']
@@ -163,4 +248,3 @@ def finishing_PvP(update: Update, context: CallbackContext, room) -> None:
     # for i in room.player_list:
     #     if i != chat_id:
     #         opponent_name = i
-    # update.message.bot.send_message(chat_id=opponent_name, text=f'Вам пришло сообщение от {name}:\n {text}')

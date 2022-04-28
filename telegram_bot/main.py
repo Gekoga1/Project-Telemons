@@ -1,5 +1,3 @@
-import logging
-
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 
 from configure.configuraion import MONSTER_NUM, ABILITY_NUM, NOTHING, TEAM_NUM, COLLECTION_NUM
@@ -58,6 +56,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
     # elif query.data in rooms.keys():
     #     select_room(update, context)
     #     context.chat_data['stage'] = Stage.PLAYING_GAME
+
     elif query.data == 'monsters':
         team_or_collection(update, context)
     elif query.data == 'team':
@@ -68,6 +67,11 @@ def check_query(update: Update, context: CallbackContext) -> None:
         write_team_num(update, context)
     elif query.data == 'change monster':
         change_monster(update, context)
+        collection_info(update, context)
+    elif query.data == 'no':
+        main_menu(update, context)
+    elif query.data in teams[update.effective_user.id] and context.chat_data['stage'] == Stage.CHANGE_MONSTER:
+        change_monster(update, context, query.data, update.effective_user.id)
     elif query.data == 'monster info':
         monster_info(update, context)
     elif query.data == 'main menu':
@@ -88,7 +92,9 @@ def check_query(update: Update, context: CallbackContext) -> None:
 
 
 def process_message(update: Update, context: CallbackContext):  # обработчик текстовых сообщений
-    if check_user(update, context) is False:
+    if 'stage' in context.chat_data and context.chat_data['stage'] == Stage.PLAY_GAME:
+        main_fight(update=update, context=context)
+    elif check_user(update, context) is False:
         write_nickname(update, context)
     elif check_user(update, context) is True:
         if context.chat_data['waiting_for'] == MONSTER_NUM:
@@ -190,7 +196,7 @@ def terminate(update: Update, context: CallbackContext):
 
 
 def main() -> None:
-    updater = Updater('5291017589:AAGK_BHLg3g2NwjDuGLnGJl9ZC9nRoBldsw')
+    updater = Updater(API_TOKEN)
 
     dispatcher = updater.dispatcher
 

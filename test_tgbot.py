@@ -4,8 +4,8 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler, MessageHandler, Filters
 
 from creating_rooms.Room import Room, Stage
-from database_manager import User
-from game_logic.game_lib import result1, result2, result3, result4, Monster_Template
+from databases.database_manager import User
+from game_logic.game_lib import Monster_Template
 from configure.secrets import API_TOKEN
 
 logging.basicConfig(
@@ -460,10 +460,7 @@ def profile(update: Update, context: CallbackContext):
 
 # Пример функционала игры
 def show_game_example(update: Update, context: CallbackContext):
-    update.message.reply_text(result1)
-    update.message.reply_text(result2)
-    update.message.reply_text(result3)
-    update.message.reply_text(result4)
+    pass
 
 
 def game_settings(update: Update, context: CallbackContext):  # настройки игры

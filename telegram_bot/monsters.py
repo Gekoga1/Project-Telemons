@@ -10,6 +10,8 @@ def team_or_collection(update: Update, context: CallbackContext):  # выбор,
     ques = InlineKeyboardMarkup([
         [
             InlineKeyboardButton('Просмотр коллекции', callback_data='collection'),
+        ],
+        [
             InlineKeyboardButton('Просмотр команды', callback_data='team')
         ]
     ])
