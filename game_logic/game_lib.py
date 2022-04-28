@@ -1,9 +1,8 @@
-from typing import Union
-import sqlite3
 import logging
+import sqlite3
 from math import floor, ceil
 from random import choices, choice, randint
-
+from typing import Union
 
 logging.basicConfig(
     filename='game-lib.log',
@@ -21,6 +20,99 @@ def clamp(minimum: float, maximum: float, value: Union[int, float],
 
     return value
 
+
+type_dict = {
+    "Normal": {
+        "Normal": 1, "Fire": 1, "Water": 1, "Grass": 1, "Electric": 2, "Ice": 1,
+        "Fighting": 0.5, "Poison": 0.5, "Ground": 2, "Wind": 1, "Psychic": 1, "Bug": 1,
+        "Rock": 1, "Ghost": 1, "Dragon": 1, "Dark": 0.5, "Steel": 1, "Fairy": 2, None: 1
+    },
+    "Fire": {
+        "Normal": 1, "Fire": 1, "Water": 0.5, "Grass": 2, "Electric": 1, "Ice": 2,
+        "Fighting": 1, "Poison": 1, "Ground": 0.5, "Wind": 1, "Psychic": 1, "Bug": 2,
+        "Rock": 0.5, "Ghost": 1, "Dragon": 0.5, "Dark": 1, "Steel": 2, "Fairy": 1, None: 1
+    },
+    "Water": {
+        "Normal": 1, "Fire": 2, "Water": 1, "Grass": 0.5, "Electric": 0.5, "Ice": 1,
+        "Fighting": 1, "Poison": 0.5, "Ground": 1, "Wind": 1, "Psychic": 1, "Bug": 1,
+        "Rock": 2, "Ghost": 1, "Dragon": 1, "Dark": 1, "Steel": 2, "Fairy": 1, None: 1
+    },
+    "Grass": {
+        "Normal": 1, "Fire": 0.5, "Water": 2, "Grass": 1, "Electric": 1, "Ice": 0.5,
+        "Fighting": 1, "Poison": 1, "Ground": 2, "Wind": 1, "Psychic": 1, "Bug": 0.5,
+        "Rock": 2, "Ghost": 1, "Dragon": 1, "Dark": 1, "Steel": 1, "Fairy": 1, None: 1
+    },
+    "Electric": {
+        "Normal": 0.5, "Fire": 1, "Water": 2, "Grass": 1, "Electric": 1, "Ice": 1,
+        "Fighting": 1, "Poison": 1, "Ground": 0.5, "Wind": 2, "Psychic": 0.5, "Bug": 1,
+        "Rock": 1, "Ghost": 1, "Dragon": 2, "Dark": 1, "Steel": 1, "Fairy": 1, None: 1
+    },
+    "Ice": {
+        "Normal": 1, "Fire": 0.5, "Water": 1, "Grass": 2, "Electric": 1, "Ice": 1,
+        "Fighting": 1, "Poison": 1, "Ground": 1, "Wind": 1, "Psychic": 1, "Bug": 2,
+        "Rock": 0.5, "Ghost": 1, "Dragon": 2, "Dark": 1, "Steel": 0.5, "Fairy": 1, None: 1
+    },
+    "Fighting": {
+        "Normal": 2, "Fire": 1, "Water": 1, "Grass": 1, "Electric": 1, "Ice": 1,
+        "Fighting": 1, "Poison": 1, "Ground": 1, "Wind": 0.5, "Psychic": 1, "Bug": 2,
+        "Rock": 2, "Ghost": 0.5, "Dragon": 1, "Dark": 1, "Steel": 1, "Fairy": 0.5, None: 1
+    },
+    "Poison": {
+        "Normal": 2, "Fire": 1, "Water": 2, "Grass": 1, "Electric": 1, "Ice": 1,
+        "Fighting": 1, "Poison": 1, "Ground": 1, "Wind": 1, "Psychic": 0.5, "Bug": 1,
+        "Rock": 1, "Ghost": 0.5, "Dragon": 1, "Dark": 1, "Steel": 0.5, "Fairy": 2, None: 1
+    },
+    "Ground": {
+        "Normal": 1, "Fire": 2, "Water": 1, "Grass": 0.5, "Electric": 2, "Ice": 1,
+        "Fighting": 1, "Poison": 1, "Ground": 1, "Wind": 0.5, "Psychic": 0.5, "Bug": 1,
+        "Rock": 1, "Ghost": 1, "Dragon": 1, "Dark": 1, "Steel": 2, "Fairy": 1, None: 1
+    },
+    "Wind": {
+        "Normal": 1, "Fire": 1, "Water": 1, "Grass": 1, "Electric": 0.5, "Ice": 1,
+        "Fighting": 2, "Poison": 1, "Ground": 2, "Wind": 1, "Psychic": 1, "Bug": 1,
+        "Rock": 0.5, "Ghost": 2, "Dragon": 0.5, "Dark": 1, "Steel": 1, "Fairy": 1, None: 1
+    },
+    "Psychic": {
+        "Normal": 1, "Fire": 1, "Water": 1, "Grass": 1, "Electric": 2, "Ice": 1,
+        "Fighting": 1, "Poison": 2, "Ground": 2, "Wind": 1, "Psychic": 1, "Bug": 0.5,
+        "Rock": 1, "Ghost": 0.5, "Dragon": 1, "Dark": 0.5, "Steel": 1, "Fairy": 1, None: 1
+    },
+    "Bug": {
+        "Normal": 1, "Fire": 0.5, "Water": 1, "Grass": 2, "Electric": 1, "Ice": 0.5,
+        "Fighting": 0.5, "Poison": 1, "Ground": 1, "Wind": 1, "Psychic": 2, "Bug": 1,
+        "Rock": 1, "Ghost": 1, "Dragon": 1, "Dark": 2, "Steel": 1, "Fairy": 1, None: 1
+    },
+    "Rock": {
+        "Normal": 1, "Fire": 2, "Water": 0.5, "Grass": 0.5, "Electric": 1, "Ice": 2,
+        "Fighting": 0.5, "Poison": 1, "Ground": 1, "Wind": 2, "Psychic": 1, "Bug": 1,
+        "Rock": 1, "Ghost": 1, "Dragon": 1, "Dark": 1, "Steel": 1, "Fairy": 1, None: 1
+    },
+    "Ghost": {
+        "Normal": 0.5, "Fire": 1, "Water": 1, "Grass": 1, "Electric": 1, "Ice": 1,
+        "Fighting": 2, "Poison": 2, "Ground": 1, "Wind": 0.5, "Psychic": 2, "Bug": 1,
+        "Rock": 1, "Ghost": 1, "Dragon": 1, "Dark": 0.5, "Steel": 1, "Fairy": 1, None: 1
+    },
+    "Dragon": {
+        "Normal": 1, "Fire": 2, "Water": 1, "Grass": 1, "Electric": 0.5, "Ice": 0.5,
+        "Fighting": 1, "Poison": 1, "Ground": 1, "Wind": 2, "Psychic": 1, "Bug": 1,
+        "Rock": 1, "Ghost": 1, "Dragon": 1, "Dark": 2, "Steel": 1, "Fairy": 0.5, None: 1
+    },
+    "Dark": {
+        "Normal": 2, "Fire": 1, "Water": 1, "Grass": 1, "Electric": 1, "Ice": 1,
+        "Fighting": 1, "Poison": 1, "Ground": 1, "Wind": 1, "Psychic": 2, "Bug": 0.5,
+        "Rock": 1, "Ghost": 2, "Dragon": 0.5, "Dark": 1, "Steel": 1, "Fairy": 0.5, None: 1
+    },
+    "Steel": {
+        "Normal": 1, "Fire": 0.5, "Water": 0.5, "Grass": 1, "Electric": 1, "Ice": 2,
+        "Fighting": 1, "Poison": 2, "Ground": 0.5, "Wind": 1, "Psychic": 1, "Bug": 1,
+        "Rock": 1, "Ghost": 1, "Dragon": 1, "Dark": 1, "Steel": 1, "Fairy": 2, None: 1
+    },
+    "Fairy": {
+        "Normal": 0.5, "Fire": 1, "Water": 1, "Grass": 1, "Electric": 1, "Ice": 1,
+        "Fighting": 2, "Poison": 0.5, "Ground": 1, "Wind": 1, "Psychic": 1, "Bug": 1,
+        "Rock": 1, "Ghost": 1, "Dragon": 2, "Dark": 2, "Steel": 0.5, "Fairy": 1, None: 1
+    }
+}
 
 con = sqlite3.connect("../databases/lib.db")
 cur = con.cursor()
@@ -317,7 +409,8 @@ class Spylit(Monster_Template):
         # {lvl: skill id}
         self.skills_rule = {
             1: Screech(),
-            2: Slash()
+            2: Slash(),
+            10: Blunt_strike()
         }
 
         # dict of evolutions
@@ -340,7 +433,8 @@ class Spylish(Monster_Template):
         # {lvl: skill id}
         self.skills_rule = {
             1: Screech(),
-            2: Slash()
+            2: Slash(),
+            10: Blunt_strike()
         }
 
         # dict of evolutions
@@ -360,7 +454,9 @@ class Spyland(Monster_Template):
         # {lvl: skill id}
         self.skills_rule = {
             1: Screech(),
-            2: Slash()
+            2: Slash(),
+            10: Blunt_strike(),
+            15: Natures_call()
         }
 
         # dict of evolutions
@@ -397,7 +493,8 @@ class Skill_Template:
                 atk = owner.c_satk
 
             self.c_accuracy -= self.accuracy
-            target.get_damage(self.power / 100 * atk)
+            target.get_damage(self.power / 100 * atk *
+                              type_dict[self.type][target.type_1] * type_dict[self.type][target.type_2])
         else:
             logging.info(f"{owner.name} tried to use {self.name}, but failed with chance {self.c_accuracy}%")
 
@@ -425,6 +522,24 @@ class Screech(Skill_Template):
             logging.info(f"{owner.name} tried to use {self.name}, but failed with chance {self.c_accuracy}%")
 
 
+class Gods_will(Skill_Template):
+    def __init__(self):
+        uid = 3
+        super().__init__(uid)
+
+
+class Blunt_strike(Skill_Template):
+    def __init__(self):
+        uid = 4
+        super().__init__(uid)
+
+
+class Natures_call(Skill_Template):
+    def __init__(self):
+        uid = 5
+        super().__init__(uid)
+
+
 class Battle:
     def __init__(self, blue_player, blue_team: list[Monster_Template], red_player, red_team: list[Monster_Template]):
         for monster in blue_team + red_team:
@@ -446,6 +561,24 @@ class Battle:
         else:
             return f"{self.red_active.battle_stats()}\n\n{self.blue_active.battle_stats()}"
 
+    def change(self, player, new):
+        if player == 0:
+            if self.blue_active != self.blue_team[new] and self.blue_team[new].alive:
+                self.blue_active = self.blue_team[new]
+                self.blue_active.on_change()
+
+                return True
+            else:
+                return False
+        elif player == 1:
+            if self.red_active != self.red_team[new] and self.red_team[new].alive:
+                self.red_active = self.red_team[new]
+                self.red_active.on_change()
+
+                return True
+            else:
+                return False
+
     def red_turn(self, schoice):
         if self.red_active.skills[schoice].name != self.red_last:
             for skill in self.red_active.skills:
@@ -463,7 +596,7 @@ class Battle:
         self.blue_last = self.blue_active.skills[schoice].name
 
     def battle(self):
-        while all(map(lambda x: x.alive, self.blue_team)) and\
+        while all(map(lambda x: x.alive, self.blue_team)) and \
                 all(map(lambda x: x.alive, self.red_team)):
             red_choice = randint(0, 3 - self.red_active.skills.count(None))
             blue_choice = randint(0, 3 - self.blue_active.skills.count(None))
@@ -498,7 +631,7 @@ class Battle:
         self.battle()
 
 
-test = Spylit(shiny=True, lvl=15)
+test = Spylit(shiny=True, lvl=20)
 test.generate_skills()
 
 dummy = Spyland(lvl=15)

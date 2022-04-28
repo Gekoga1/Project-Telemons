@@ -9,6 +9,8 @@ def team_or_collection(update: Update, context: CallbackContext):  # выбор,
     ques = InlineKeyboardMarkup([
         [
             InlineKeyboardButton('Просмотр коллекции', callback_data='collection'),
+        ],
+        [
             InlineKeyboardButton('Просмотр команды', callback_data='team')
         ]
     ])
@@ -16,13 +18,23 @@ def team_or_collection(update: Update, context: CallbackContext):  # выбор,
 
 
 def collection_info(update: Update, context: CallbackContext):  # вывод всей коллекции монстров
-    update.effective_user.send_message(text='Здесь выводится вся коллекция монстров игрока')
+    collection = get_collection_info(update, context)
+    msg = 'Ваши монстры:\n\n'
+    for i in range(len(collection)):
+        msg += f'{i + 1}. {collection[i][0]}, уровень: {str(collection[i][1])}, опыт: {str(collection[i][2])}\n'
+    update.effective_user.send_message(text=msg)
     monster_choice(update, context)
 
 
-def monster_choice(update: Update, context: CallbackContext):  # спрашивает номер монстра
+def get_collection_info(update: Update, context: CallbackContext):  # получение информации о монстрах из коллекции
     user_id = update.effective_user.id
-    database_manager.set_state(MONSTER_NUM, user_id)
+    monsters_id = database_manager.get_collection(user_id).split(';')
+    collection = [database_manager.get_monster_info(int(i)) for i in monsters_id if i != '']
+    return collection
+
+
+def monster_choice(update: Update, context: CallbackContext):  # спрашивает номер монстра
+    context.chat_data['waiting_for'] = MONSTER_NUM
     update.effective_user.send_message(text='Введите номер монстра')
     get_monster_num(update, context)
 
@@ -30,8 +42,6 @@ def monster_choice(update: Update, context: CallbackContext):  # спрашив�
 def get_monster_num(update: Update, context: CallbackContext):  # получает номер монстра
     try:
         monster_num = int(update.message.text)
-        user_id = update.effective_user.id
-        database_manager.set_state(NOTHING, user_id)
         ques = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton('Заменить монстра', callback_data='change monster'),
@@ -72,8 +82,7 @@ def monster_activity(update: Update, context: CallbackContext):  # предла�
 
 def print_ability_num(update: Update, context: CallbackContext):  # спрашивает номер способности
     update.effective_user.send_message(text='Введите номер способности, которую хотите заменить')
-    user_id = update.effective_user.id
-    database_manager.set_state(ABILITY_NUM, user_id)
+    context.chat_data['waiting_for'] = ABILITY_NUM
     get_ability_num(update, context)
 
 
@@ -100,3 +109,25 @@ def team_info(update: Update, context: CallbackContext):  # информация
         ]
     ])
     update.callback_query.edit_message_text('Вы хотите изменить команду?', reply_markup=change_ques)
+
+
+def change_team(update: Update, context: CallbackContext, team):  # изменение команды
+    user_id = update.effective_user.id
+    # final_team = f'{str(team[0])};{str(team[1])};{str(team[2])};{str(team[3])}'
+    database_manager.change_user_team(user_id, team)
+
+
+def change_collection(update: Update, context: CallbackContext, new_monster):  # добавление монстра в коллекцию игрока
+    user_id = update.effective_user.id
+    old_collection = database_manager.get_collection(user_id)
+    new_collection = old_collection + ';' + str(new_monster)
+    database_manager.change_user_collection(user_id, new_collection)
+
+
+def check_add_monster(update: Update, context: CallbackContext, uid):  # проверка, есть ли новый монстр уже у игрока
+    collection = database_manager.get_collection(update.effective_user.id).split(';')
+    uid_in_coll = [database_manager.get_monster_uid(int(i)) for i in collection if i != '']
+    if uid in uid_in_coll:
+        return False
+    else:
+        return True
