@@ -112,6 +112,7 @@ def team_info(update: Update, context: CallbackContext):
     text = 'Ваша команда:\n\n'
     for i in range(len(team)):
         text += f'{i + 1}) {team[i][1]}, уровень: {team[i][2]}, опыт: {team[i][3]}\n'
+
     update.effective_user.send_message(text=text)
     team_activity(update, context)
 

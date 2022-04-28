@@ -46,17 +46,14 @@ def registration(update: Update, context: CallbackContext, monster_class): # з�
         monsters_ids = database_manager.get_monsters_ids()
         if len(monsters_ids) == 0:
             monster_id = 1
-            team = '1;'
-            collection = '1;'
+            team = '1'
         else:
             monster_id = int(monsters_ids[-1][0]) + 1
-            team = f'{str(monster_id)};'
-            collection = f'{str(monster_id)};'
+            team = f'{str(monster_id)}'
         database_manager.add_monster(id=monster_id, uid=monster_class.uid, name=monster_class.name,
                                     level=1, exp=0, shiny=False)
         create_fst_team(update, context, team)
-        create_fst_collection(update, context, collection)
-        add_user(update, context, name, team, collection)
+        add_user(update, context, name, team)
         update.effective_user.send_message(f"Вы успешно зарегистрировались.\n\nВаше имя в игре {name}\n"
                                        f"Вы всегда можете его изменить, вызвав команду /game_settings\n\n"
                                        f"Чтобы выйти в главное меню, введите команду /main_menu")
@@ -88,14 +85,14 @@ def check_user(update: Update, context: CallbackContext):
 
 
 # добавляем пользователя в бд
-def add_user(update: Update, context: CallbackContext, nickname, team, collection):
+def add_user(update: Update, context: CallbackContext, nickname, team):
     # query = update.callback_query
     try:
         id = update.effective_user.id
         username = update.effective_user.username
         if username is None:
             username = update.effective_user.name
-        database_manager.add_user(id=id, username=username, game_name=nickname, team=team, collection=collection)
+        database_manager.add_user(id=id, username=username, game_name=nickname, team=team)
     except Exception as exception:
         print(exception)
         update.message.reply_text('Произошла ошибка при регистрации пользователя. Повторите попытку позже.')
@@ -118,6 +115,10 @@ def delete_monsters_users(update: Update, context: CallbackContext):  # удал
         user_id = update.effective_user.id
         collection = database_manager.get_collection(user_id).split(';')
         for monster_id in collection:
+            if monster_id != '':
+                database_manager.delete_monster(int(monster_id))
+        team = database_manager.get_team(user_id).split(';')
+        for monster_id in team:
             if monster_id != '':
                 database_manager.delete_monster(int(monster_id))
         return True

@@ -45,7 +45,8 @@ class User:
             print(1)
             print(ex)
 
-    def add_user(self, id, username, game_name, team, collection):
+    def add_user(self, id, username, game_name, team):
+        collection = ''
         try:
             request = f"""INSERT INTO users VALUES(?, ?, ?, ?, ?, ?)"""
             self.cursor.execute(request, (id, username, game_name, True, team, collection))
