@@ -56,8 +56,9 @@ def registration(update: Update, context: CallbackContext, monster_class): # Ð·Ð
             monster_id = int(monsters_ids[-1][0]) + 1
             team = f'{str(monster_id)};'
             collection = f'{str(monster_id)};'
-        database_manager.add_monster(id=monster_id, uid=monster_class.uid, name=monster_class.name,
-                                    level=1, exp=0, shiny=False)
+        database_manager.add_monster(id=monster_id, uid=monster_class.uid,
+                                     name=monster_class.__class__.__name__,
+                                     level=monster_class.lvl, exp=0, shiny=monster_class.shiny)
         create_fst_team(update, context, team)
         create_fst_collection(update, context, collection)
         add_user(update, context, name, team, collection)

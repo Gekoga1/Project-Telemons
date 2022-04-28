@@ -78,7 +78,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'change ability':
         print_ability_num(update, context)
     elif query.data == 'spylit':
-        monster_class = Monster_Template(1, shiny=False)
+        monster_class = Monster_Template(uid=1, lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
         registration(update, context, monster_class)
     elif query.data == 'ice':
         pass
