@@ -2,7 +2,7 @@ import logging
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 
-from configure.configuraion import MONSTER_NUM, ABILITY_NUM, NOTHING, TEAM_NUM, COLLECTION_NUM
+from configure.configuraion import MONSTER_NUM, ABILITY_NUM, NOTHING, TEAM_NUM, COLLECTION_NUM, NICKNAME
 from authorisation import *
 from configure.secrets import API_TOKEN
 from fighting import *
@@ -39,6 +39,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'delete_no':
         query.edit_message_text('Процесс отменён')
     elif query.data == 'nickname':
+        context.chat_data['waiting for'] = NICKNAME
         query.edit_message_text('Введите свой ник')
         write_nickname(update, context)
     elif query.data == 'tg_name':
@@ -88,17 +89,16 @@ def check_query(update: Update, context: CallbackContext) -> None:
 
 
 def process_message(update: Update, context: CallbackContext):  # обработчик текстовых сообщений
-    if check_user(update, context) is False:
+    if context.chat_data['waiting_for'] == MONSTER_NUM:
+        get_monster_num(update, context)
+    elif context.chat_data['waiting for'] == NICKNAME:
         write_nickname(update, context)
-    elif check_user(update, context) is True:
-        if context.chat_data['waiting_for'] == MONSTER_NUM:
-            get_monster_num(update, context)
-        elif context.chat_data['waiting_for'] == ABILITY_NUM:
-            get_ability_num(update, context)
-        elif context.chat_data['waiting_for'] == TEAM_NUM:
-            get_team_num(update, context)
-        elif context.chat_data['waiting_for'] == NOTHING:
-            return
+    elif context.chat_data['waiting_for'] == ABILITY_NUM:
+        get_ability_num(update, context)
+    elif context.chat_data['waiting_for'] == TEAM_NUM:
+        get_team_num(update, context)
+    elif context.chat_data['waiting_for'] == NOTHING:
+        return
 
 
 def main_menu(update: Update, context: CallbackContext):  # главное меню
