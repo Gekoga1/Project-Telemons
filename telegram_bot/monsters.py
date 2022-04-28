@@ -158,8 +158,11 @@ def get_team_num(update: Update, context: CallbackContext):
     try:
         team_amount = len(database_manager.get_team(update.effective_user.id).split(';'))
         team_num = int(update.message.text)
-        context.chat_data['team_num'] = team_num
-        show_collection(update, context)
+        if team_num > team_amount or team_num <= 0:
+            raise Exception
+        else:
+            context.chat_data['team_num'] = team_num
+            show_collection(update, context)
     except Exception as ex:
         print(ex)
         update.message.reply_text('Вы ввели не число или ввели номер, которого нет, попробуйте ещё раз')
