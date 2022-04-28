@@ -9,6 +9,7 @@ from fighting import *
 from game_logic.game_lib import Monster_Template
 from monsters import *
 from settings import *
+from random import choices
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
