@@ -7,13 +7,13 @@ from monsters import check_add_monster, change_team, change_collection
 
 def write_nickname(update: Update, context: CallbackContext):  # собственный ник
     name = update.message.text
-    add_user(update, context, name)
+    context.chat_data['name'] = name
     choose_fst_monster(update, context)
 
 
 def name_from_telegram(update: Update, context: CallbackContext):  # имя из тг
     name = update.effective_user.username
-    add_user(update, context, name)
+    context.chat_data['name'] = name
     choose_fst_monster(update, context)
 
 
@@ -28,21 +28,53 @@ def choose_fst_monster(update: Update, context: CallbackContext):  # выбор 
     update.effective_user.send_message(text='Выберите своего первого монстра', reply_markup=ques)
 
 
-def registration(update: Update, context: CallbackContext, monster_class): # завершение регистрации
+def create_fst_team(update: Update, context: CallbackContext, team):  # добавление стартового монстра в команду
     user_id = update.effective_user.id
-    name = database_manager.get_gamename(user_id)
-    amount_monsters = database_manager.get_amount_monsters() + 1
-    if check_add_monster(update, context, monster_class.uid):
-        database_manager.add_monster(id=amount_monsters, uid=monster_class.uid, name=monster_class.name,
-                                 level=1, exp=0, shiny=False)
-        team = str(amount_monsters) + ';'
-        change_team(update, context, team)
-        change_collection(update, context, amount_monsters)
+    database_manager.change_user_team(user_id, team)
+
+
+def create_fst_collection(update: Update, context: CallbackContext, collection):
+    user_id = update.effective_user.id
+    collection = f'{str(collection)};'
+    database_manager.change_user_collection(user_id, collection)
+
+
+def registration(update: Update, context: CallbackContext, monster_class): # завершение регистрации
+    try:
+        user_id = update.effective_user.id
+        name = context.chat_data['name']
+        monsters_ids = database_manager.get_monsters_ids()
+        if len(monsters_ids) == 0:
+            monster_id = 1
+            team = '1;'
+            collection = '1;'
+        else:
+            monster_id = int(monsters_ids[-1][0]) + 1
+            team = f'{str(monster_id)};'
+            collection = f'{str(monster_id)};'
+        database_manager.add_monster(id=monster_id, uid=monster_class.uid, name=monster_class.name,
+                                    level=1, exp=0, shiny=False)
+        create_fst_team(update, context, team)
+        create_fst_collection(update, context, collection)
+        add_user(update, context, name, team, collection)
         update.effective_user.send_message(f"Вы успешно зарегистрировались.\n\nВаше имя в игре {name}\n"
-                                        f"Вы всегда можете его изменить, вызвав команду /game_settings\n\n"
-                                        f"Чтобы выйти в главное меню, введите команду /main_menu")
-    else:
-        print('this monster is already in team and in collection')
+                                       f"Вы всегда можете его изменить, вызвав команду /game_settings\n\n"
+                                       f"Чтобы выйти в главное меню, введите команду /main_menu")
+    except Exception as ex:
+        print(ex)
+        update.effective_user.send_message('Произошла ошибка при регистрации, попробуйте ещё раз')
+    # add_user(update, context, name, team, collection)
+    # if check_add_monster(update, context, monster_class.uid):
+    #     database_manager.add_monster(id=amount_monsters, uid=monster_class.uid, name=monster_class.name,
+    #                              level=1, exp=0, shiny=False)
+    #     team = str(amount_monsters) + ';'
+    #     create_fst_team(update, context, team)
+    #     change_collection(update, context, amount_monsters)
+    #     update.effective_user.send_message(f"Вы успешно зарегистрировались.\n\nВаше имя в игре {name}\n"
+    #                                     f"Вы всегда можете его изменить, вызвав команду /game_settings\n\n"
+    #                                     f"Чтобы выйти в главное меню, введите команду /main_menu")
+    # else:
+    #     print('this monster is already in team and in collection')
 
 
 # проверяем существует ли такой пользователь в базе
@@ -56,14 +88,14 @@ def check_user(update: Update, context: CallbackContext):
 
 
 # добавляем пользователя в бд
-def add_user(update: Update, context: CallbackContext, nickname):
+def add_user(update: Update, context: CallbackContext, nickname, team, collection):
     # query = update.callback_query
     try:
         id = update.effective_user.id
         username = update.effective_user.username
         if username is None:
             username = update.effective_user.name
-        database_manager.add_user(id=id, username=username, game_name=nickname)
+        database_manager.add_user(id=id, username=username, game_name=nickname, team=team, collection=collection)
     except Exception as exception:
         print(exception)
         update.message.reply_text('Произошла ошибка при регистрации пользователя. Повторите попытку позже.')
@@ -84,8 +116,8 @@ def delete_user(update: Update, context: CallbackContext):
 def delete_monsters_users(update: Update, context: CallbackContext):  # удаление монстров пользователя
     try:
         user_id = update.effective_user.id
-        team = database_manager.get_team(user_id).split(';')
-        for monster_id in team:
+        collection = database_manager.get_collection(user_id).split(';')
+        for monster_id in collection:
             if monster_id != '':
                 database_manager.delete_monster(int(monster_id))
         return True

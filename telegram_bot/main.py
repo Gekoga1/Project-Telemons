@@ -2,6 +2,7 @@ import logging
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 
+from configure.configuraion import MONSTER_NUM, ABILITY_NUM, NOTHING, TEAM_NUM, COLLECTION_NUM
 from authorisation import *
 from configure.secrets import API_TOKEN
 from fighting import *
@@ -63,11 +64,9 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'collection':
         collection_info(update, context)
     elif query.data == 'change team':
-        collection_info(update, context)
-    elif query.data == 'no':
-        main_menu(update, context)
+        write_team_num(update, context)
     elif query.data == 'change monster':
-        pass
+        change_monster(update, context)
     elif query.data == 'monster info':
         monster_info(update, context)
     elif query.data == 'main menu':
@@ -81,8 +80,10 @@ def check_query(update: Update, context: CallbackContext) -> None:
         pass
     elif query.data == 'grass':
         pass
+    elif context.chat_data['waiting_for'] == COLLECTION_NUM:
+        select_monster(update, context)
     else:
-        update.message.reply_text('Я вас не понимаю, повторите попытку ввода.')
+        query.edit_message_text('Я вас не понимаю, повторите попытку ввода.')
 
 
 def process_message(update: Update, context: CallbackContext):  # обработчик текстовых сообщений
@@ -93,6 +94,8 @@ def process_message(update: Update, context: CallbackContext):  # обработ
             get_monster_num(update, context)
         elif context.chat_data['waiting_for'] == ABILITY_NUM:
             get_ability_num(update, context)
+        elif context.chat_data['waiting_for'] == TEAM_NUM:
+            get_team_num(update, context)
         elif context.chat_data['waiting_for'] == NOTHING:
             return
 
@@ -158,16 +161,6 @@ def show_game_example(update: Update, context: CallbackContext):
     pass
 
 
-def full_registration(update: Update, context: CallbackContext):  # проверка на то, выбрал ли игрок первого монстра
-    user_id = update.effective_user.id
-    team = database_manager.get_team(user_id).split(';')
-    amount_monsters = database_manager.get_amount_monsters()
-    if team[0] == '' and amount_monsters == 0:
-        return False
-    else:
-        return True
-
-
 # Начальная функция. Проверяет есть ли аккаунт или нет, регистрация
 def start(update: Update, context: CallbackContext) -> None:
     id = update.effective_user.id
@@ -176,12 +169,8 @@ def start(update: Update, context: CallbackContext) -> None:
     if check_user(update=update, context=context):
         database_manager.is_authorised_abled(id=id)
 
-        if not full_registration(update, context):
-            update.message.reply_text('Вы ещё не закончили регистрацию')
-            choose_fst_monster(update, context)
-        else:
-            update.message.reply_text('У вас уже есть аккаунт. Вы можете продолжать')
-            main_menu(update, context)
+        update.message.reply_text('У вас уже есть аккаунт. Вы можете продолжать')
+        main_menu(update, context)
     else:
         registration_answer = InlineKeyboardMarkup([
             [
@@ -200,7 +189,7 @@ def terminate(update: Update, context: CallbackContext):
 
 
 def main() -> None:
-    updater = Updater(API_TOKEN)
+    updater = Updater('5291017589:AAGK_BHLg3g2NwjDuGLnGJl9ZC9nRoBldsw')
 
     dispatcher = updater.dispatcher
 
