@@ -183,3 +183,8 @@ class User:
         req = """UPDATE users_monsters SET exp = ? WHERE id = ?"""
         self.cursor.execute(req, (new_exp, monster_id,))
         self.connection.commit()
+
+    def change_monster_params(self, new_name, new_lvl, new_exp, new_skills, monster_id):
+        req = """UPDATE users_monsters SET name = ?, level = ?, exp = ?, skills = ? WHERE id = ?"""
+        self.cursor.execute(req, (new_name, new_lvl, new_exp, new_skills, monster_id))
+        self.connection.commit()
