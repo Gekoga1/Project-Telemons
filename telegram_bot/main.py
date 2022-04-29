@@ -6,7 +6,7 @@ from configure.configuraion import MONSTER_NUM, ABILITY_NUM, NOTHING, TEAM_NUM, 
 from authorisation import *
 from configure.secrets import API_TOKEN
 from fighting import *
-from game_logic.game_lib import Monster_Template
+from game_logic.game_lib import *
 from monsters import *
 from settings import *
 from random import choices
@@ -56,9 +56,13 @@ def check_query(update: Update, context: CallbackContext) -> None:
         # нажата кнопка создать комнату
     elif query.data == 'create_room':
         create_room(update, context)
+    elif query.data.split(' ')[0] in ['Атака', 'Смена']:
+        main_fight(update=update, context=context, text=query.data)
+
     # elif query.data in rooms.keys():
     #     select_room(update, context)
     #     context.chat_data['stage'] = Stage.PLAYING_GAME
+
     elif query.data == 'monsters':
         team_or_collection(update, context)
     elif query.data == 'team':
@@ -76,7 +80,8 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'change ability':
         print_ability_num(update, context)
     elif query.data == 'spylit':
-        monster_class = Monster_Template(uid=1, lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
+        monster_class = Spylit(lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
+        monster_class.generate_skills()
         registration(update, context, monster_class)
     elif query.data == 'ice':
         pass
@@ -117,6 +122,7 @@ def main_menu(update: Update, context: CallbackContext):  # главное ме�
             update.message.reply_text(text='Ты сейчас играешь, нельзя вернуться в меня до окончания матча')
         else:
             if get_authorised(update=update, context=context):
+                teams[id] = pars_team(database_manager.get_team(user_id=id))
                 reply_markup = InlineKeyboardMarkup([
                     [
                         InlineKeyboardButton("Выбор боёв", callback_data='choose_type_fight'),
@@ -133,6 +139,7 @@ def main_menu(update: Update, context: CallbackContext):  # главное ме�
                 update.message.reply_text('Вы не авторизованы, чтобы играть нужно авторизоваться.')
     except Exception as exception:
         if get_authorised(update=update, context=context):
+            teams[id] = pars_team(database_manager.get_team(user_id=id))
             reply_markup = InlineKeyboardMarkup([
                 [
                     InlineKeyboardButton("Выбор боёв", callback_data='choose_type_fight'),
@@ -163,6 +170,15 @@ def profile(update: Update, context: CallbackContext):
     if get_authorised(update=update, context=context):
         update.message.reply_text(f'id: {id}\n'
                                   f'username: {database_manager.get_gamename(id)}')
+
+
+def pars_team(team):
+    new_team = []
+    for uid in team.split(';'):
+        data = database_manager.get_monster_info(uid)
+        exec(f'new_team.append({data[0]}(lvl={data[1]}, exp={data[2]}, shiny={data[3]}))')
+        new_team[-1].deconvert_skills(data[4])
+    return new_team
 
 
 # Пример функционала игры
@@ -198,7 +214,7 @@ def terminate(update: Update, context: CallbackContext):
 
 
 def main() -> None:
-    updater = Updater('5291017589:AAGK_BHLg3g2NwjDuGLnGJl9ZC9nRoBldsw')
+    updater = Updater(API_TOKEN)
 
     dispatcher = updater.dispatcher
 
