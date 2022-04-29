@@ -421,8 +421,13 @@ def add_new_monster(update: Update, context: CallbackContext, monster_class):  #
         return False
 
 
-def change_monsters_exp(update: Update, context: CallbackContext, new_exp):   # изменение опыта монстра
-    monsters_id = database_manager.get_team(update.effective_user.id)
-    for i in monsters_id:
-        database_manager.change_monster_exp(new_exp, int(i))
+def change_monsters_exp(update: Update, context: CallbackContext, add_exp):   # изменение опыта монстра
+    user_id = update.effective_user.id
+    try:
+        monsters_id = database_manager.get_team(user_id).split(';')
+        for i in monsters_id:
+            new_exp = int(database_manager.get_monster_exp(int(i))) + int(add_exp)
+            database_manager.change_monster_exp(new_exp, int(i))
+    except Exception as ex:
+        print(ex)
 

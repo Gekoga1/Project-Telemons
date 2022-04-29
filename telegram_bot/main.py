@@ -205,6 +205,10 @@ def show_game_example(update: Update, context: CallbackContext):
     pass
 
 
+def test(update: Updater, context: CallbackContext):
+    change_monsters_exp(update, context, 30)
+
+
 # Начальная функция. Проверяет есть ли аккаунт или нет, регистрация
 def start(update: Update, context: CallbackContext) -> None:
     id = update.effective_user.id
@@ -246,6 +250,7 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("game_settings", game_settings))
     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, process_message))
     dispatcher.add_handler(CommandHandler("main_menu", main_menu))
+    dispatcher.add_handler(CommandHandler("test", test))
     updater.dispatcher.add_handler(CallbackQueryHandler(check_query))
 
     updater.start_polling()
