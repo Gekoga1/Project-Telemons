@@ -1,15 +1,11 @@
-import logging
-
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 
-from configure.configuraion import MONSTER_NUM, ABILITY_NUM, NOTHING, TEAM_NUM, COLLECTION_NUM
 from authorisation import *
 from configure.secrets import API_TOKEN
 from fighting import *
 from game_logic.game_lib import *
 from monsters import *
 from settings import *
-from random import choices
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
@@ -26,6 +22,7 @@ def get_authorised(update: Update, context: CallbackContext):
 # обработка нажатий inline buttons
 def check_query(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
+    id = update.effective_user.id
     query.answer()
     if query.data == 'registration_yes':
         nickname_or_tgname(update, context)
@@ -53,16 +50,19 @@ def check_query(update: Update, context: CallbackContext) -> None:
         fighting_PVE(update, context)
     elif query.data == 'join_room':
         join_room(update, context)
-        context.bot_data['stage'] = Stage.SELECT_ROOM
+        context.bot_data[id]['stage'] = Stage.SELECT_ROOM
         # нажата кнопка создать комнату
     elif query.data == 'create_room':
         create_room(update, context)
+    elif query.data.split(' ')[0] in ['Атака', 'Смена'] and context.bot_data[id]['stage'] == Stage.PLAY_PVE:
+        continue_fighting_PVE(update, context, text=query.data, id=id)
     elif query.data.split(' ')[0] in ['Атака', 'Смена']:
         main_fight(update=update, context=context, text=query.data)
 
+
     # elif query.data in rooms.keys():
     #     select_room(update, context)
-    #     context.bot_data['stage'] = Stage.PLAYING_GAME
+    #     context.bot_data[id]['stage'] = Stage.PLAYING_GAME
 
     elif query.data == 'monsters':
         team_or_collection(update, context)
@@ -82,6 +82,8 @@ def check_query(update: Update, context: CallbackContext) -> None:
         print_ability_num(update, context)
     elif query.data == 'exit_fight':
         finishing_PvP(update, context, is_extra=True, room=None)
+    elif query.data == 'exit_pve':
+
     elif query.data == 'spylit':
         monster_class = Spylit(lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
         monster_class.generate_skills()
@@ -90,31 +92,34 @@ def check_query(update: Update, context: CallbackContext) -> None:
         pass
     elif query.data == 'grass':
         pass
-    elif context.bot_data['waiting_for'] == COLLECTION_NUM:
+    elif context.chat_data['waiting_for'] == COLLECTION_NUM:
         select_monster(update, context)
     else:
         query.edit_message_text('Я вас не понимаю, повторите попытку ввода.')
 
 
 def process_message(update: Update, context: CallbackContext):  # обработчик текстовых сообщений
+    id = update.effective_user.id
     if check_user(update, context) is False:
         write_nickname(update, context)
     elif check_user(update, context) is True:
-        if context.bot_data['waiting_for'] == MONSTER_NUM:
+        if context.bot_data[id]['waiting_for'] == MONSTER_NUM:
             get_monster_num(update, context)
-        elif context.bot_data['waiting_for'] == ABILITY_NUM:
+        elif context.bot_data[id]['waiting_for'] == ABILITY_NUM:
             get_ability_num(update, context)
-        elif context.bot_data['waiting_for'] == TEAM_NUM:
+        elif context.bot_data[id]['waiting_for'] == TEAM_NUM:
             get_team_num(update, context)
-        elif context.bot_data['waiting_for'] == NOTHING:
+        elif context.bot_data[id]['waiting_for'] == NOTHING:
             return
 
 
 def main_menu(update: Update, context: CallbackContext):  # главное меню
-    # context.bot_data['waiting_for'] = NOTHING
+    # context.chat_data['waiting_for'] = NOTHING
     id = update.effective_user.id
+    if id not in context.bot_data:
+        add_bot_data(update=update, context=context, id=id)
     try:
-        if context.bot_data['stage'] == Stage.PLAY_GAME:
+        if context.bot_data[id]['stage'] == Stage.PLAY_GAME:
             update.message.reply_text(text='Ты сейчас играешь, нельзя вернуться в меня до окончания матча')
         else:
             if get_authorised(update=update, context=context):
@@ -150,6 +155,10 @@ def main_menu(update: Update, context: CallbackContext):  # главное ме�
                                                f'Чем хотите заняться?', reply_markup=reply_markup)
         else:
             update.message.reply_text('Вы не авторизованы, чтобы играть нужно авторизоваться.')
+
+
+def add_bot_data(update: Update, context: CallbackContext, id):
+    context.bot_data[id] = {}
 
 
 def propose_change_user_nickname(update: Update, context: CallbackContext, query):
@@ -232,4 +241,3 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
-

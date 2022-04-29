@@ -13,6 +13,9 @@ def choose_type_fight(update: Update, context: CallbackContext):
             InlineKeyboardButton('PVP', callback_data='PVP'),
         ],
         [
+            InlineKeyboardButton('PVE', callback_data='PVE')
+        ],
+        [
             InlineKeyboardButton('Вернуться в главное меню', callback_data='main menu')
         ]
     ])
@@ -32,13 +35,13 @@ def create_room(update: Update, context: CallbackContext) -> None:
     room = Room()
     room.author_id = user.id
     room.room_name = user.username
-    context.bot_data['create_room'] = room
+    context.chat_data['create_room'] = room
 
-    room: Room = context.bot_data['create_room']
+    room: Room = context.chat_data['create_room']
 
     rooms[room.room_name] = room
-    del context.bot_data['create_room']
-    context.bot_data['stage'] = Stage.HOSTING_GAME
+    del context.chat_data['create_room']
+    context.bot_data[user.id]['stage'] = Stage.HOSTING_GAME
     room.count_players = 0
     room.player_list = []
     room.round_data = {}
@@ -46,10 +49,10 @@ def create_room(update: Update, context: CallbackContext) -> None:
     query.edit_message_text(
         text='Подходящих комнат не нашлось, поэтому комната была создана.\nВы уже находитесь в ней, ждите пользователей')
 
-    context.bot_data['roomName'] = user.username
+    context.chat_data['roomName'] = user.username
     room.player_list.append(update.effective_message.chat_id)
     room.count_players += 1
-    context.bot_data['stage'] = Stage.PLAY_GAME
+    context.bot_data[user.id]['stage'] = Stage.PLAY_GAME
 
 
 def close_room(update: Update, context: CallbackContext, room_name) -> None:
@@ -59,8 +62,8 @@ def close_room(update: Update, context: CallbackContext, room_name) -> None:
 def join_room(update: Update, context: CallbackContext) -> None:
     for roomKey in rooms:
         if rooms[roomKey].count_players <= 2:
-            context.bot_data['roomName'] = roomKey
-            room_name = context.bot_data['roomName']
+            context.chat_data['roomName'] = roomKey
+            room_name = context.chat_data['roomName']
             room = rooms[room_name]
             show_room(update=update, context=context, room=room)
     # buttons = []
@@ -74,17 +77,17 @@ def join_room(update: Update, context: CallbackContext) -> None:
 
 
 # def select_room(update: Update, context: CallbackContext) -> None:
-#     context.bot_data['roomName'] = update.callback_query.data
-#     room_name = context.bot_data['roomName']
+#     context.chat_data['roomName'] = update.callback_query.data
+#     room_name = context.chat_data['roomName']
 #     room = rooms[room_name]
 #     show_room(update=update, context=context, room=room)
 
 
 def show_room(update: Update, context: CallbackContext, room) -> None:
     query = update.callback_query
-    room.player_list.append(update.effective_message.chat_id)
+    room.player_list.append(update.effective_user.id)
     room.count_players += 1
-    context.bot_data['stage'] = Stage.PLAY_GAME
+    context.bot_data[update.effective_user.id]['stage'] = Stage.PLAY_GAME
     query.edit_message_text(text=f'Проверка проверка, это комната {room.room_name}\n')
     if room.count_players == 2:
         room.count_round = 1
@@ -105,8 +108,8 @@ def test_game(update: Update, context: CallbackContext, room) -> None:
 
     # text = update.message.text
     # if text == 'hello':
-    #     room_name = context.bot_data['roomName']
-    #     context.bot_data['stage'] = Stage.LOBBY
+    #     room_name = context.chat_data['roomName']
+    #     context.bot_data[id]['stage'] = Stage.LOBBY
     #     update.message.reply_text('УРА! Вы угадали это слово')
     #     del rooms[room_name]
     #     main_menu(update, context)
@@ -170,7 +173,7 @@ def choose(update: Update, context: CallbackContext, room) -> None:
 
 
 def main_fight(update: Update, context: CallbackContext, text) -> None:
-    room_name = context.bot_data['roomName']
+    room_name = context.chat_data['roomName']
     room = rooms[room_name]
 
     user_data = update.effective_user.id
@@ -191,11 +194,18 @@ def main_fight(update: Update, context: CallbackContext, text) -> None:
                 else:
                     context.bot.send_message(chat_id=user_data, text='Ошибочный ввод')
         elif text_info[0] == 'Смена':
-            room.round_data[user_data] = text
-            context.bot.send_message(chat_id=user_data, text='Ждите оппонента')
+            if user_data == room.blue_player:
+                if len(room.room_battle.blue_team) < 2:
+                    context.bot.send_message(chat_id=user_data, text=f'У вас нету персонажей для смены')
+                else:
+                    context.bot.send_message(chat_id=user_data, text='Ждите оппонента')
+            else:
+                if len(room.room_battle.red_team) < 2:
+                    context.bot.send_message(chat_id=user_data, text=f'У вас нету персонажей для смены')
+                else:
+                    context.bot.send_message(chat_id=user_data, text='Ждите оппонента')
 
     if len(room.round_data) == 2:
-
         change_happened = False
         for user_id in room.round_data:
             data = room.round_data[user_id]
@@ -203,17 +213,11 @@ def main_fight(update: Update, context: CallbackContext, text) -> None:
             if data[0] == 'Смена':
                 change_happened = True
                 if user_id == room.blue_player:
-                    if len(room.room_battle.blue_team) < 2:
-                        context.bot.send_message(chat_id=user_id, text=f'У вас нету персонажа для смены')
-                    else:
-                        propose_change_monster(update, context, room.room_battle.blue_active, player_move='blue',
-                                               room=room)
+                    propose_change_monster(update, context, room.room_battle.blue_active, player_move='blue',
+                                           room=room)
                 else:
-                    if len(room.room_battle.blue_team) < 2:
-                        context.bot.send_message(chat_id=user_id, text=f'У вас нету персонажа для смены')
-                    else:
-                        propose_change_monster(update, context, room.room_battle.blue_active, player_move='red',
-                                               room=room)
+                    propose_change_monster(update, context, room.room_battle.blue_active, player_move='red',
+                                           room=room)
         if change_happened:
             if room.round_data[room.blue_player].split(' ')[0] == 'Атака':
                 room.room_battle.blue_turn(int(room.round_data[room.blue_player].split(' ')[1]) - 1)
@@ -274,10 +278,15 @@ def main_fight(update: Update, context: CallbackContext, text) -> None:
 
 
 def propose_change_monster(update: Update, context: CallbackContext, monster, player_move, room):
-    context.bot_data['stage'] = Stage.CHANGE_MONSTER
     buttons = []
     if player_move == 'blue':
+        context.bot_data[room.blue_player]['stage'] = Stage.CHANGE_MONSTER
         for member in room.room_battle.blue_team:
+            if member != monster:
+                buttons.append(InlineKeyboardButton(member, callback_data=member))
+    else:
+        context.bot_data[room.red_player]['stage'] = Stage.CHANGE_MONSTER
+        for member in room.room_battle.red_team:
             if member != monster:
                 buttons.append(InlineKeyboardButton(member, callback_data=member))
     keyboard = [buttons]
@@ -286,7 +295,7 @@ def propose_change_monster(update: Update, context: CallbackContext, monster, pl
 
 
 def change_monster(update: Update, context: CallbackContext, monster, player_team):
-    room_name = context.bot_data['roomName']
+    room_name = context.chat_data['roomName']
     room = rooms[room_name]
     if player_team == room.blue_player:
         room.room_battle.change(player=0, new=room.room_battle.blue_team.index(monster))
@@ -301,8 +310,8 @@ def finishing_PvP(update: Update, context: CallbackContext, room, is_extra=False
             member.get_exp(amount=100)
         for user_id in room.player_list:
             try:
-                context.bot_data['stage'] = Stage.LOBBY
-                del context.bot_data['roomName']
+                context.bot_data[user_id]['stage'] = Stage.LOBBY
+                del context.chat_data['roomName']
                 del rooms[room.room_name]
                 context.bot.send_message(chat_id=user_id, text='Битва закончилась\n'
                                                                'Главное меню - /main_menu')
@@ -311,12 +320,12 @@ def finishing_PvP(update: Update, context: CallbackContext, room, is_extra=False
                 context.bot.send_message(chat_id=user_id, text='Битва закончилась\n'
                                                                'Главное меню - /main_menu')
     else:
-        room_name = context.bot_data['roomName']
+        room_name = context.chat_data['roomName']
         room = rooms[room_name]
         for user_id in room.player_list:
             try:
-                context.bot_data['stage'] = Stage.LOBBY
-                del context.bot_data['roomName']
+                context.bot_data[user_id]['stage'] = Stage.LOBBY
+                del context.chat_data['roomName']
                 del rooms[room.room_name]
                 context.bot.send_message(chat_id=user_id,
                                          text='Битва закончилась досрочно, так как один из пользователей вышел\n'
@@ -326,15 +335,86 @@ def finishing_PvP(update: Update, context: CallbackContext, room, is_extra=False
                                          text='Битва закончилась досрочно, так как один из пользователей вышел\n'
                                               'Главное меню - /main_menu')
 
-def fighting_PVE(update:Update, context: CallbackContext):
+
+def fighting_PVE(update: Update, context: CallbackContext):
+    dummy = Spyland(lvl=5)
+    dummy.generate_skills()
+
+    id = update.effective_user.id
+    team = teams[id]
+
+    battle = Battle(None, team, None, [dummy])
+
+    skills = battle.blue_active.get_skills()
+    reply_markup = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(skills[0], callback_data='Атака 1'),
+        ],
+        [
+            InlineKeyboardButton(skills[1], callback_data='Атака 2'),
+        ],
+        [
+            InlineKeyboardButton(skills[2], callback_data='Атака 3'),
+        ],
+        [
+            InlineKeyboardButton(skills[3], callback_data='Атака 4'),
+        ],
+        [
+            InlineKeyboardButton('Выход из боя', callback_data='exit_fight')
+        ]
+    ])
+    context.bot.send_message(chat_id=id, text=battle.print(reverse=False), reply_markup=reply_markup)
+    context.bot_data[id]['stage'] = Stage.PLAY_PVE
+    context.bot_data[id]['pve'] = battle
+
+
+def continue_fighting_PVE(update: Update, context: CallbackContext, text, id):
+    text_info = text.split()
+    battle = context.bot_data[id]['pve']
+    if text_info[0] == 'Атака':
+        if battle.blue_active.skills[int(text_info[1]) - 1] is not None:
+            context.bot.send_message(chat_id=id, text='Ход сделан')
+        else:
+            context.bot.send_message(chat_id=id, text='Ошибка ввода')
+
+    red_choice = randint(0, 3 - battle.red_active.skills.count(None))
+    if battle.red_active.c_speed > battle.blue_active.c_speed:
+        battle.red_turn(int(red_choice) - 1)
+        battle.blue_turn(int(text.split(' ')[1]) - 1)
+    elif battle.red_active.c_speed < battle.blue_active.c_speed:
+        battle.blue_turn(int(text.split(' ')[1]) - 1)
+        battle.red_turn(int(red_choice) - 1)
+    else:
+        if choice([True, False]):
+            battle.red_turn(int(red_choice) - 1)
+            battle.blue_turn(int(text.split(' ')[1]) - 1)
+        else:
+            battle.blue_turn(int(text.split(' ')[1]) - 1)
+            battle.red_turn(int(red_choice) - 1)
+    battle.update()
+
+    skills = battle.blue_active.get_skills()
+    reply_markup = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(skills[0], callback_data='Атака 1'),
+        ],
+        [
+            InlineKeyboardButton(skills[1], callback_data='Атака 2'),
+        ],
+        [
+            InlineKeyboardButton(skills[2], callback_data='Атака 3'),
+        ],
+        [
+            InlineKeyboardButton(skills[3], callback_data='Атака 4'),
+        ],
+        [
+            InlineKeyboardButton(skills[0], callback_data='Смена персонажа'),
+        ],
+        [
+            InlineKeyboardButton('Выход из боя', callback_data='exit_fight')
+        ]
+    ])
+
+    context.bot.send_message(chat_id=id, text=battle.print(), reply_markup=reply_markup)
+def finishing_PVE(update, context):
     pass
-    # text = update.message.text
-    # room_name = context.bot_data['roomName']
-    #
-    # room = rooms[room_name]
-    # chat_id = update.effective_message.chat_id
-    # name = update.effective_user.name
-    # opponent_name = ''
-    # for i in room.player_list:
-    #     if i != chat_id:
-    #         opponent_name = i
