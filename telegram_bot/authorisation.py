@@ -2,7 +2,7 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext
 
 from configure.configuraion import database_manager, NOTHING
-from monsters import check_add_monster, change_team, change_collection
+from monsters import change_team, change_collection
 
 
 def write_nickname(update: Update, context: CallbackContext):  # собственный ник

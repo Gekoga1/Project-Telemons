@@ -48,24 +48,28 @@ def monster_choice(update: Update, context: CallbackContext):  # спрашив�
 def get_monster_num(update: Update, context: CallbackContext):  # получает номер монстра
     try:
         user_id = update.effective_user.id
+        collection = database_manager.get_collection(user_id).split(';')
+        coll_amount = len(collection)
         monster_num = int(update.message.text)
-        context.chat_data['monster_num'] = monster_num
-        context.chat_data['collection_num'] = database_manager.get_collection(user_id).split(';')[monster_num - 1]
-        print(database_manager.get_collection(user_id).split(';')[monster_num - 1])
-        ques = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton('Заменить монстра', callback_data='change monster'),
-                InlineKeyboardButton('Посмотреть характеристики', callback_data='monster info')
-            ],
-            [
-                InlineKeyboardButton('Вернуться в главное меню', callback_data='main menu')
-            ]
-        ])
-        update.message.reply_text(f'Вы выбрали монстра под номером {str(monster_num)} \n'
-                                  f'Что Вы хотите сделать?', reply_markup=ques)
+        if monster_num > coll_amount or monster_num <= 0:
+            raise Exception
+        else:
+            context.chat_data['monster_num'] = monster_num
+            context.chat_data['collection_num'] = database_manager.get_collection(user_id).split(';')[monster_num - 1]
+            ques = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton('Заменить монстра', callback_data='change monster'),
+                    InlineKeyboardButton('Посмотреть характеристики', callback_data='monster info')
+                ],
+                [
+                    InlineKeyboardButton('Вернуться в главное меню', callback_data='main menu')
+                ]
+            ])
+            update.message.reply_text(f'Вы выбрали монстра под номером {str(monster_num)} \n'
+                                    f'Что Вы хотите сделать?', reply_markup=ques)
     except Exception as ex:
         print(ex)
-        update.message.reply_text('Вы ввели не число, попробуйте ещё раз.')
+        update.message.reply_text('Вы ввели не число или ввели номер, которого нет, попробуйте ещё раз')
 
 
 def monster_info(update: Update, context: CallbackContext):  # информация о монстре
@@ -81,12 +85,12 @@ def monster_info(update: Update, context: CallbackContext):  # информац�
 def monster_activity(update: Update, context: CallbackContext):  # предлагает действия с монстром
     ques = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton('Вернуться в главное меню', callback_data='main menu'),
-            InlineKeyboardButton('Посмотреть способности', callback_data='change ability')
-        ],
-        [
             InlineKeyboardButton('Эволюционировать', callback_data='want evolution'),
             InlineKeyboardButton('Заменить монстра', callback_data='change monster')
+        ],
+        [
+            InlineKeyboardButton('Вернуться в главное меню', callback_data='main menu'),
+            # InlineKeyboardButton('Посмотреть способности', callback_data='change ability')
         ]
     ])
     update.effective_user.send_message(text='Что вы хотите сделать?', reply_markup=ques)
@@ -169,54 +173,54 @@ def select_monster_in_team(update: Update, context: CallbackContext):
     context.chat_data['waiting for'] = NOTHING
     change_monster(update, context)
 
-
-def show_abilities(update: Update, context: CallbackContext):
-    try:
-        abilities = get_abilities(update, context)
-        print(abilities)
-        user_id = update.effective_user.id
-        collection = get_collection_info(update, context)
-        print(collection)
-        monster_num = int(context.chat_data['monster_num'])
-        print(collection[monster_num - 1])
-        monster_name = collection[monster_num - 1][1]
-        print(monster_name)
-    except Exception as ex:
-        print(ex)
-    text = f'Способности монстра {monster_name}: \n\n'
-    for i in range(len(abilities)):
-        text += f'{i + 1}) {abilities[i]}'
-    update.effective_user.send_message(text)
-    print_ability_num(update, context)
-
-
-def get_abilities(update: Update, context: CallbackContext):
-    user_id = update.effective_user.id
-    collection = get_collection_info(update, context)
-    monster_num = context.chat_data['monster_num']
-    need_id = collection[monster_num - 1][0]
-    abilities = database_manager.get_monster_skills(need_id).split(';')
-    return abilities
-
-
-def print_ability_num(update: Update, context: CallbackContext):  # спрашивает номер способности
-    update.effective_user.send_message(text='Введите номер способности, которую хотите заменить')
-    context.chat_data['waiting_for'] = ABILITY_NUM
-    get_ability_num(update, context)
-
-
-def get_ability_num(update: Update, context: CallbackContext):  # получает номер способности от пользователя
-    try:
-        ability_num = int(update.message.text)
-        show_ability_list(update, context, ability_num)
-    except Exception as ex:
-        print(ex)
-        update.message.reply_text('Вы ввели не число, попробуйте ещё раз')
-
-
-def show_ability_list(update: Update, context: CallbackContext,
-                      ability_num):  # показывает список доступных способностей
-    update.message.reply_text('Здесь выводится список доступных способностей')
+#
+# def show_abilities(update: Update, context: CallbackContext):
+#     try:
+#         abilities = get_abilities(update, context)
+#         print(abilities)
+#         user_id = update.effective_user.id
+#         collection = get_collection_info(update, context)
+#         print(collection)
+#         monster_num = int(context.chat_data['monster_num'])
+#         print(collection[monster_num - 1])
+#         monster_name = collection[monster_num - 1][1]
+#         print(monster_name)
+#     except Exception as ex:
+#         print(ex)
+#     text = f'Способности монстра {monster_name}: \n\n'
+#     for i in range(len(abilities)):
+#         text += f'{i + 1}) {abilities[i]}'
+#     update.effective_user.send_message(text)
+#     print_ability_num(update, context)
+#
+#
+# def get_abilities(update: Update, context: CallbackContext):
+#     user_id = update.effective_user.id
+#     collection = get_collection_info(update, context)
+#     monster_num = context.chat_data['monster_num']
+#     need_id = collection[monster_num - 1][0]
+#     abilities = database_manager.get_monster_skills(need_id).split(';')
+#     return abilities
+#
+#
+# def print_ability_num(update: Update, context: CallbackContext):  # спрашивает номер способности
+#     update.effective_user.send_message(text='Введите номер способности, которую хотите заменить')
+#     context.chat_data['waiting_for'] = ABILITY_NUM
+#     get_ability_num(update, context)
+#
+#
+# def get_ability_num(update: Update, context: CallbackContext):  # получает номер способности от пользователя
+#     try:
+#         ability_num = int(update.message.text)
+#         show_ability_list(update, context, ability_num)
+#     except Exception as ex:
+#         print(ex)
+#         update.message.reply_text('Вы ввели не число, попробуйте ещё раз')
+#
+#
+# def show_ability_list(update: Update, context: CallbackContext,
+#                       ability_num):  # показывает список доступных способностей
+#     update.message.reply_text('Здесь выводится список доступных способностей')
 
 
 def team_info(update: Update, context: CallbackContext, only_show=False, reply_markup=None):
@@ -255,7 +259,6 @@ def show_team_for_delete(update: Update, context: CallbackContext):
 
     btns = []
     temp = []
-    keyboard = []
     for i in range(len(team)):
         temp.append(InlineKeyboardButton(str(i + 1), callback_data=i))
     btns.append(temp)
@@ -276,7 +279,10 @@ def delete_from_team(update: Update, context: CallbackContext):
     delete_num = int(context.chat_data['delete_num'])
     team = database_manager.get_team(user_id).split(';')
     collection = database_manager.get_collection(user_id)
-    new_collection = f'{collection};{team[delete_num]}'
+    if len(collection) == 0:
+        new_collection = str(team[delete_num])
+    else:
+        new_collection = f'{collection};{team[delete_num]}'
     change_collection(update, context, new_collection)
     del team[delete_num]
     change_team(update, context, ';'.join(team))
@@ -294,13 +300,13 @@ def change_collection(update: Update, context: CallbackContext, new_collection):
     database_manager.change_user_collection(user_id, new_collection)
 
 
-def check_add_monster(update: Update, context: CallbackContext, uid):  # проверка, есть ли новый монстр уже у игрока
-    collection = database_manager.get_collection(update.effective_user.id).split(';')
-    uid_in_coll = [database_manager.get_monster_uid(int(i)) for i in collection if i != '']
-    if uid in uid_in_coll:
-        return False
-    else:
-        return True
+# def check_add_monster(update: Update, context: CallbackContext, uid):  # проверка, есть ли новый монстр уже у игрока
+#     collection = database_manager.get_collection(update.effective_user.id).split(';')
+#     uid_in_coll = [database_manager.get_monster_uid(int(i)) for i in collection if i != '']
+#     if uid in uid_in_coll:
+#         return False
+#     else:
+#         return True
 
 
 def write_team_num(update: Update, context: CallbackContext):
