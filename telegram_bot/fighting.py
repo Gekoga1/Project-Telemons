@@ -369,52 +369,68 @@ def fighting_PVE(update: Update, context: CallbackContext):
 
 
 def continue_fighting_PVE(update: Update, context: CallbackContext, text, id):
-    text_info = text.split()
-    battle = context.bot_data[id]['pve']
-    if text_info[0] == 'Атака':
-        if battle.blue_active.skills[int(text_info[1]) - 1] is not None:
-            context.bot.send_message(chat_id=id, text='Ход сделан')
-        else:
-            context.bot.send_message(chat_id=id, text='Ошибка ввода')
+    try:
+        text_info = text.split()
+        battle = context.bot_data[id]['pve']
+        if text_info[0] == 'Атака':
+            if battle.blue_active.skills[int(text_info[1]) - 1] is not None:
+                context.bot.send_message(chat_id=id, text='Ход сделан')
+            else:
+                context.bot.send_message(chat_id=id, text='Ошибка ввода')
 
-    red_choice = randint(0, 3 - battle.red_active.skills.count(None))
-    if battle.red_active.c_speed > battle.blue_active.c_speed:
-        battle.red_turn(int(red_choice) - 1)
-        battle.blue_turn(int(text.split(' ')[1]) - 1)
-    elif battle.red_active.c_speed < battle.blue_active.c_speed:
-        battle.blue_turn(int(text.split(' ')[1]) - 1)
-        battle.red_turn(int(red_choice) - 1)
-    else:
-        if choice([True, False]):
+        red_choice = randint(0, 3 - battle.red_active.skills.count(None))
+        if battle.red_active.c_speed > battle.blue_active.c_speed:
             battle.red_turn(int(red_choice) - 1)
             battle.blue_turn(int(text.split(' ')[1]) - 1)
-        else:
+        elif battle.red_active.c_speed < battle.blue_active.c_speed:
             battle.blue_turn(int(text.split(' ')[1]) - 1)
             battle.red_turn(int(red_choice) - 1)
-    battle.update()
+        else:
+            if choice([True, False]):
+                battle.red_turn(int(red_choice) - 1)
+                battle.blue_turn(int(text.split(' ')[1]) - 1)
+            else:
+                battle.blue_turn(int(text.split(' ')[1]) - 1)
+                battle.red_turn(int(red_choice) - 1)
+        battle.update()
 
-    skills = battle.blue_active.get_skills()
-    reply_markup = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton(skills[0], callback_data='Атака 1'),
-        ],
-        [
-            InlineKeyboardButton(skills[1], callback_data='Атака 2'),
-        ],
-        [
-            InlineKeyboardButton(skills[2], callback_data='Атака 3'),
-        ],
-        [
-            InlineKeyboardButton(skills[3], callback_data='Атака 4'),
-        ],
-        [
-            InlineKeyboardButton(skills[0], callback_data='Смена персонажа'),
-        ],
-        [
-            InlineKeyboardButton('Выход из боя', callback_data='exit_fight')
-        ]
-    ])
+        if all(map(lambda x: not x.alive, battle.blue_team)):
+            context.bot.send_message(chat_id=id, text=f'Ты проиграл')
+            return finishing_PVE(update, context, id)
+        elif all(map(lambda x: not x.alive, battle.red_team)):
+            context.bot.send_message(chat_id=id, text=f'Ты выиграл и получаешь опыт')
+            return finishing_PVE(update, context, id)
 
-    context.bot.send_message(chat_id=id, text=battle.print(), reply_markup=reply_markup)
-def finishing_PVE(update, context):
-    pass
+        skills = battle.blue_active.get_skills()
+        reply_markup = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton(skills[0], callback_data='Атака 1'),
+            ],
+            [
+                InlineKeyboardButton(skills[1], callback_data='Атака 2'),
+            ],
+            [
+                InlineKeyboardButton(skills[2], callback_data='Атака 3'),
+            ],
+            [
+                InlineKeyboardButton(skills[3], callback_data='Атака 4'),
+            ],
+            [
+                InlineKeyboardButton(skills[0], callback_data='Смена персонажа'),
+            ],
+            [
+                InlineKeyboardButton('Выход из боя', callback_data='exit_fight')
+            ]
+        ])
+
+        context.bot.send_message(chat_id=id, text=battle.print(), reply_markup=reply_markup)
+    except Exception as exception:
+        print(exception)
+
+
+def finishing_PVE(update, context, id):
+    context.bot_data[id]['stage'] = Stage.LOBBY
+    del context.bot_data[id]['pve']
+    context.bot.send_message(chat_id=id,
+                             text='Битва закончилась'
+                                  'Главное меню - /main_menu')

@@ -83,7 +83,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'exit_fight':
         finishing_PvP(update, context, is_extra=True, room=None)
     elif query.data == 'exit_pve':
-
+        finishing_PVE(update, context, id)
     elif query.data == 'spylit':
         monster_class = Spylit(lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
         monster_class.generate_skills()
@@ -119,7 +119,7 @@ def main_menu(update: Update, context: CallbackContext):  # главное ме�
     if id not in context.bot_data:
         add_bot_data(update=update, context=context, id=id)
     try:
-        if context.bot_data[id]['stage'] == Stage.PLAY_GAME:
+        if context.bot_data[id]['stage'] == Stage.PLAY_GAME or context.bot_data[id]['stage'] == Stage.PLAY_PVE:
             update.message.reply_text(text='Ты сейчас играешь, нельзя вернуться в меня до окончания матча')
         else:
             if get_authorised(update=update, context=context):
