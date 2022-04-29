@@ -47,6 +47,7 @@ def get_monster_num(update: Update, context: CallbackContext):  # получае
     try:
         user_id = update.effective_user.id
         monster_num = int(update.message.text)
+        context.chat_data['monster_num'] = monster_num
         context.chat_data['collection_num'] = database_manager.get_collection(user_id).split(';')[monster_num - 1]
         print(database_manager.get_collection(user_id).split(';')[monster_num - 1])
         ques = InlineKeyboardMarkup([
@@ -69,7 +70,7 @@ def monster_info(update: Update, context: CallbackContext):  # информац�
     collection = get_collection_info(update, context)
     monster_num = context.chat_data['monster_num']
     text = f'Монстр: {collection[monster_num - 1][1]}\nУровень: {collection[monster_num - 1][2]}\n' \
-           f'Опыт: {collection[monster_num - 1][3]}'
+            f'Опыт: {collection[monster_num- 1][3]}\nСпособности: {", ".join(collection[monster_num - 1][-1].split(";"))}'
     update.effective_user.send_message(text=text)
     monster_activity(update, context)
 
@@ -78,7 +79,7 @@ def monster_activity(update: Update, context: CallbackContext):  # предла�
     ques = InlineKeyboardMarkup([
         [
             InlineKeyboardButton('Вернуться в главное меню', callback_data='main menu'),
-            InlineKeyboardButton('Заменить способность', callback_data='change ability')
+            InlineKeyboardButton('Посмотреть способности', callback_data='change ability')
         ],
         [
             InlineKeyboardButton('Эволюционировать', callback_data='want evolution'),
@@ -122,6 +123,35 @@ def select_monster_in_team(update: Update, context: CallbackContext):
     change_monster(update, context)
 
 
+def show_abilities(update: Update, context: CallbackContext):
+    try:
+        abilities = get_abilities(update, context)
+        print(abilities)
+        user_id = update.effective_user.id
+        collection = get_collection_info(update, context)
+        print(collection)
+        monster_num = int(context.chat_data['monster_num'])
+        print(collection[monster_num - 1])
+        monster_name = collection[monster_num - 1][1]
+        print(monster_name)
+    except Exception as ex:
+        print(ex)
+    text = f'Способности монстра {monster_name}: \n\n'
+    for i in range(len(abilities)):
+        text += f'{i + 1}) {abilities[i]}'
+    update.effective_user.send_message(text)
+    print_ability_num(update, context)
+
+
+def get_abilities(update: Update, context: CallbackContext):
+    user_id = update.effective_user.id
+    collection = get_collection_info(update, context)
+    monster_num = context.chat_data['monster_num']
+    need_id = collection[monster_num - 1][0]
+    abilities = database_manager.get_monster_skills(need_id).split(';')
+    return abilities
+
+
 def print_ability_num(update: Update, context: CallbackContext):  # спрашивает номер способности
     update.effective_user.send_message(text='Введите номер способности, которую хотите заменить')
     context.chat_data['waiting_for'] = ABILITY_NUM
@@ -139,7 +169,6 @@ def get_ability_num(update: Update, context: CallbackContext):  # получае
 
 def show_ability_list(update: Update, context: CallbackContext,
                       ability_num):  # показывает список доступных способностей
-    print(ability_num)
     update.message.reply_text('Здесь выводится список доступных способностей')
 
 
@@ -256,18 +285,19 @@ def change_monster(update: Update, context: CallbackContext):
     new_collection = ''
     try:
         for i in range(len(team) + 1):
-            print(i)
+            # if team[i] == int(coll_num):
+            #     pass
             if i == int(team_num) - 1:
                 print(coll_num)
                 new_team += f'{str(coll_num)};'
-                new_collection += f'{team[i]}'
+                new_collection += f'{team[i]};'
+                print(new_collection)
             elif team[i] != '':
                 new_team += f'{team[i]};'
             else:
                 new_team += f'{str(coll_num)}'
     except Exception as ex:
         print(ex)
-    print(new_team, 'new team')
     for i in range(len(collection)):
         if collection[i] == str(coll_num):
             new_collection += ''
@@ -292,3 +322,24 @@ def next_activity(update: Update, context: CallbackContext):
         ]
     ])
     update.effective_user.send_message(text='Что Вы хотите сделать?', reply_markup=ques)
+
+
+def add_new_monster(update: Update, context: CallbackContext, monster_class):  # добавление нового монстра
+    try:
+        monsters_ids = database_manager.get_monsters_ids()
+        monster_id = int(monsters_ids[-1][0]) + 1
+        database_manager.add_monster(id=monster_id, name=monster_class.__class__.__name__,
+                                 level=monster_class.lvl, exp=monster_class.exp, shiny=monster_class.shiny,
+                                 skills=monster_class.convert_skills())
+        return True
+    except Exception as ex:
+        print(ex)
+        update.effective_user.send_message('Произошла ошибка при добавлении нового монстра, повторите попытку позже')
+        return False
+
+
+def change_monsters_exp(update: Update, context: CallbackContext, new_exp):   # изменение опыта монстра
+    monsters_id = database_manager.get_team(update.effective_user.id)
+    for i in monsters_id:
+        database_manager.change_monster_exp(new_exp, int(i))
+

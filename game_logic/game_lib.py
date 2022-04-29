@@ -2,7 +2,7 @@ import logging
 import sqlite3
 from math import floor, ceil
 from random import choices, choice, randint
-from typing import Union
+from typing import Union, List
 from configure.configuraion import database_manager
 
 logging.basicConfig(
@@ -558,7 +558,7 @@ class Natures_call(Skill_Template):
 
 
 class Battle:
-    def __init__(self, blue_player, blue_team: list[Monster_Template], red_player, red_team: list[Monster_Template]):
+    def __init__(self, blue_player, blue_team: List[Monster_Template], red_player, red_team: List[Monster_Template]):
         for monster in blue_team + red_team:
             monster.reset()
 

@@ -26,7 +26,8 @@ class User:
             name  TEXT    NOT NULL,
             level INTEGER NOT NULL,
             exp   INTEGER NOT NULL,
-            shiny BOOLEAN NOT NULL
+            shiny BOOLEAN NOT NULL,
+            skills TEXT 
         );
         """
         try:
@@ -42,7 +43,6 @@ class User:
             self.cursor.execute(req, (id, name, level, exp, shiny, skills))
             self.connection.commit()
         except Exception as ex:
-            print(1)
             print(ex)
 
     def add_user(self, id, username, game_name, team):
@@ -165,7 +165,7 @@ class User:
         return ''.join(res)
 
     def get_monster_info(self, monster_id):
-        req = """SELECT name, level, exp, shiny, skills FROM users_monsters WHERE id = ?"""
+        req = """SELECT * FROM users_monsters WHERE id = ?"""
         res = self.cursor.execute(req, (monster_id,)).fetchone()
         return res
 
@@ -173,3 +173,13 @@ class User:
         req = """SELECT name FROM users_monsters WHERE id = ?"""
         res = self.cursor.execute(req, (monster_id,)).fetchone()
         return ''.join(res)
+
+    def get_monster_skills(self, monster_id):
+        req = """SELECT skills FROM users_monsters WHERE id = ?"""
+        res = self.cursor.execute(req, (monster_id,)).fetchone()
+        return ''.join(res)
+
+    def change_monster_exp(self, new_exp, monster_id):
+        req = """UPDATE users_monsters SET exp = ? WHERE id = ?"""
+        self.cursor.execute(req, (new_exp, monster_id,))
+        self.connection.commit()
