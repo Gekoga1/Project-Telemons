@@ -49,9 +49,11 @@ def check_query(update: Update, context: CallbackContext) -> None:
         choose_type_fight(update=update, context=context)
     elif query.data == 'PVP':
         fight_PVP(update=update, context=context)
+    elif query.data == 'PVE':
+        fighting_PVE(update, context)
     elif query.data == 'join_room':
         join_room(update, context)
-        context.chat_data['stage'] = Stage.SELECT_ROOM
+        context.bot_data['stage'] = Stage.SELECT_ROOM
         # нажата кнопка создать комнату
     elif query.data == 'create_room':
         create_room(update, context)
@@ -60,7 +62,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
 
     # elif query.data in rooms.keys():
     #     select_room(update, context)
-    #     context.chat_data['stage'] = Stage.PLAYING_GAME
+    #     context.bot_data['stage'] = Stage.PLAYING_GAME
 
     elif query.data == 'monsters':
         team_or_collection(update, context)
@@ -78,6 +80,8 @@ def check_query(update: Update, context: CallbackContext) -> None:
         main_menu(update, context)
     elif query.data == 'change ability':
         print_ability_num(update, context)
+    elif query.data == 'exit_fight':
+        finishing_PvP(update, context, is_extra=True, room=None)
     elif query.data == 'spylit':
         monster_class = Spylit(lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
         monster_class.generate_skills()
@@ -86,7 +90,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
         pass
     elif query.data == 'grass':
         pass
-    elif context.chat_data['waiting_for'] == COLLECTION_NUM:
+    elif context.bot_data['waiting_for'] == COLLECTION_NUM:
         select_monster(update, context)
     else:
         query.edit_message_text('Я вас не понимаю, повторите попытку ввода.')
@@ -96,21 +100,21 @@ def process_message(update: Update, context: CallbackContext):  # обработ
     if check_user(update, context) is False:
         write_nickname(update, context)
     elif check_user(update, context) is True:
-        if context.chat_data['waiting_for'] == MONSTER_NUM:
+        if context.bot_data['waiting_for'] == MONSTER_NUM:
             get_monster_num(update, context)
-        elif context.chat_data['waiting_for'] == ABILITY_NUM:
+        elif context.bot_data['waiting_for'] == ABILITY_NUM:
             get_ability_num(update, context)
-        elif context.chat_data['waiting_for'] == TEAM_NUM:
+        elif context.bot_data['waiting_for'] == TEAM_NUM:
             get_team_num(update, context)
-        elif context.chat_data['waiting_for'] == NOTHING:
+        elif context.bot_data['waiting_for'] == NOTHING:
             return
 
 
 def main_menu(update: Update, context: CallbackContext):  # главное меню
-    context.chat_data['waiting_for'] = NOTHING
+    # context.bot_data['waiting_for'] = NOTHING
     id = update.effective_user.id
     try:
-        if context.chat_data['stage'] == Stage.PLAY_GAME:
+        if context.bot_data['stage'] == Stage.PLAY_GAME:
             update.message.reply_text(text='Ты сейчас играешь, нельзя вернуться в меня до окончания матча')
         else:
             if get_authorised(update=update, context=context):

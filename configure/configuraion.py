@@ -5,6 +5,8 @@ rooms = {}
 
 teams = {}
 
+people_stages = {}
+
 battles = {}
 
 NOTHING = 'nothing'
