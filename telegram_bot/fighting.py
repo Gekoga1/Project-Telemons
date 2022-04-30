@@ -119,56 +119,28 @@ def test_game(update: Update, context: CallbackContext, room) -> None:
 
 
 def choose(update: Update, context: CallbackContext, room) -> None:
-    for j, i in enumerate(room.player_list):
+    for j, a in enumerate(room.player_list):
         if j == 0:
-            skills = room.room_battle.blue_active.get_skills()
-            reply_markup = InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton(skills[0], callback_data='Атака 1'),
-                ],
-                [
-                    InlineKeyboardButton(skills[1], callback_data='Атака 2'),
-                ],
-                [
-                    InlineKeyboardButton(skills[2], callback_data='Атака 3'),
-                ],
-                [
-                    InlineKeyboardButton(skills[3], callback_data='Атака 4'),
-                ],
-                [
-                    InlineKeyboardButton(skills[0], callback_data='Смена персонажа'),
-                ],
-                [
-                    InlineKeyboardButton('Выход из боя', callback_data='exit_fight')
-                ]
-            ])
+            skill = room.room_battle.blue_active.get_skills()
+            skills = []
+            for i in skill:
+                if i != 'None':
+                    skills.append([InlineKeyboardButton(i, callback_data=f'Атака {skill.index(i) + 1}')])
+            skills.append([InlineKeyboardButton('Выход из боя', callback_data=f'exit_fight')])
+            reply_markup = InlineKeyboardMarkup(skills)
 
-            context.bot.send_message(chat_id=i, text=room.room_battle.print(reverse=False),
+            context.bot.send_message(chat_id=a, text=room.room_battle.print(reverse=True),
                                      reply_markup=reply_markup)
         else:
-            skills = room.room_battle.red_active.get_skills()
-            reply_markup = InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton(skills[0], callback_data='Атака 1'),
-                ],
-                [
-                    InlineKeyboardButton(skills[1], callback_data='Атака 2'),
-                ],
-                [
-                    InlineKeyboardButton(skills[2], callback_data='Атака 3'),
-                ],
-                [
-                    InlineKeyboardButton(skills[3], callback_data='Атака 4'),
-                ],
-                [
-                    InlineKeyboardButton(skills[0], callback_data='Смена персонажа'),
-                ],
-                [
-                    InlineKeyboardButton('Выход из боя', callback_data='exit_fight')
-                ]
-            ])
+            skill = room.room_battle.red_active.get_skills()
+            skills = []
+            for i in skill:
+                if i != 'None':
+                    skills.append([InlineKeyboardButton(i, callback_data=f'Атака {skill.index(i) + 1}')])
+            skills.append([InlineKeyboardButton('Выход из боя', callback_data=f'exit_fight')])
+            reply_markup = InlineKeyboardMarkup(skills)
 
-            context.bot.send_message(chat_id=i, text=room.room_battle.print(reverse=True),
+            context.bot.send_message(chat_id=a, text=room.room_battle.print(reverse=True),
                                      reply_markup=reply_markup)
 
 
@@ -345,24 +317,13 @@ def fighting_PVE(update: Update, context: CallbackContext):
 
     battle = Battle(None, team, None, [dummy])
 
-    skills = battle.blue_active.get_skills()
-    reply_markup = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton(skills[0], callback_data='Атака 1'),
-        ],
-        [
-            InlineKeyboardButton(skills[1], callback_data='Атака 2'),
-        ],
-        [
-            InlineKeyboardButton(skills[2], callback_data='Атака 3'),
-        ],
-        [
-            InlineKeyboardButton(skills[3], callback_data='Атака 4'),
-        ],
-        [
-            InlineKeyboardButton('Выход из боя', callback_data='exit_pve')
-        ]
-    ])
+    skill = battle.blue_active.get_skills()
+    skills = []
+    for i in skill:
+        if i != 'None':
+            skills.append([InlineKeyboardButton(i, callback_data=f'Атака {skill.index(i) + 1}')])
+    skills.append([InlineKeyboardButton('Выход из боя', callback_data=f'exit_pve')])
+    reply_markup = InlineKeyboardMarkup(skills)
     context.bot.send_message(chat_id=id, text=battle.print(reverse=False), reply_markup=reply_markup)
     context.bot_data[id]['stage'] = Stage.PLAY_PVE
     context.bot_data[id]['pve'] = battle
@@ -401,24 +362,13 @@ def continue_fighting_PVE(update: Update, context: CallbackContext, text, id):
             context.bot.send_message(chat_id=id, text=f'Ты выиграл и получаешь опыт')
             return finishing_PVE(update, context, id)
 
-        skills = battle.blue_active.get_skills()
-        reply_markup = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton(skills[0], callback_data='Атака 1'),
-            ],
-            [
-                InlineKeyboardButton(skills[1], callback_data='Атака 2'),
-            ],
-            [
-                InlineKeyboardButton(skills[2], callback_data='Атака 3'),
-            ],
-            [
-                InlineKeyboardButton(skills[3], callback_data='Атака 4'),
-            ],
-            [
-                InlineKeyboardButton('Выход из боя', callback_data='exit_fight')
-            ]
-        ])
+        skill = battle.blue_active.get_skills()
+        skills = []
+        for i in skill:
+            if i != 'None':
+                skills.append([InlineKeyboardButton(i, callback_data=f'Атака {skill.index(i) + 1}')])
+        skills.append([InlineKeyboardButton('Выход из боя', callback_data=f'exit_pve')])
+        reply_markup = InlineKeyboardMarkup(skills)
 
         context.bot.send_message(chat_id=id, text=battle.print(), reply_markup=reply_markup)
     except Exception as exception:
