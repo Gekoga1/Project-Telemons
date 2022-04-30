@@ -87,9 +87,12 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'exit_pve':
         finishing_PVE(update, context, id, extra=True)
     elif query.data == 'spylit':
-        monster_class = Spylit(lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
-        monster_class.generate_skills()
-        registration(update, context, monster_class)
+        try:
+            monster_class = Spylit(lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
+            monster_class.generate_skills()
+            registration(update, context, monster_class)
+        except Exception as exception:
+            print(exception)
     elif query.data == 'ice':
         pass
     elif query.data == 'grass':
@@ -120,7 +123,7 @@ def process_message(update: Update, context: CallbackContext):  # обработ
     elif context.chat_data['waiting_for'] == NICKNAME:
         write_nickname(update, context)
     elif context.chat_data['waiting_for'] == COLLECTION_TEAM:
-        get_collection_team_num(update, context)
+        get_team_num(update, context)
     elif context.chat_data['waiting_for'] == ABILITY_NUM:
         get_ability_num(update, context)
     elif context.chat_data['waiting_for'] == TEAM_NUM:
