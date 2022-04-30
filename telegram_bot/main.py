@@ -122,7 +122,6 @@ def process_message(update: Update, context: CallbackContext):  # обработ
 
 
 def main_menu(update: Update, context: CallbackContext):  # главное меню
-    update.effective_message.delete()
     context.chat_data['waiting_for'] = NOTHING
     id = update.effective_user.id
     try:
