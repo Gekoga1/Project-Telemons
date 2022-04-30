@@ -360,7 +360,7 @@ def fighting_PVE(update: Update, context: CallbackContext):
             InlineKeyboardButton(skills[3], callback_data='Атака 4'),
         ],
         [
-            InlineKeyboardButton('Выход из боя', callback_data='exit_fight')
+            InlineKeyboardButton('Выход из боя', callback_data='exit_pve')
         ]
     ])
     context.bot.send_message(chat_id=id, text=battle.print(reverse=False), reply_markup=reply_markup)
@@ -380,18 +380,18 @@ def continue_fighting_PVE(update: Update, context: CallbackContext, text, id):
 
         red_choice = randint(0, 3 - battle.red_active.skills.count(None))
         if battle.red_active.c_speed > battle.blue_active.c_speed:
-            battle.red_turn(int(red_choice) - 1)
+            battle.red_turn(int(red_choice))
             battle.blue_turn(int(text.split(' ')[1]) - 1)
         elif battle.red_active.c_speed < battle.blue_active.c_speed:
             battle.blue_turn(int(text.split(' ')[1]) - 1)
-            battle.red_turn(int(red_choice) - 1)
+            battle.red_turn(int(red_choice))
         else:
             if choice([True, False]):
-                battle.red_turn(int(red_choice) - 1)
+                battle.red_turn(int(red_choice))
                 battle.blue_turn(int(text.split(' ')[1]) - 1)
             else:
                 battle.blue_turn(int(text.split(' ')[1]) - 1)
-                battle.red_turn(int(red_choice) - 1)
+                battle.red_turn(int(red_choice))
         battle.update()
 
         if all(map(lambda x: not x.alive, battle.blue_team)):
@@ -416,9 +416,6 @@ def continue_fighting_PVE(update: Update, context: CallbackContext, text, id):
                 InlineKeyboardButton(skills[3], callback_data='Атака 4'),
             ],
             [
-                InlineKeyboardButton(skills[0], callback_data='Смена персонажа'),
-            ],
-            [
                 InlineKeyboardButton('Выход из боя', callback_data='exit_fight')
             ]
         ])
@@ -428,9 +425,16 @@ def continue_fighting_PVE(update: Update, context: CallbackContext, text, id):
         print(exception)
 
 
-def finishing_PVE(update, context, id):
-    context.bot_data[id]['stage'] = Stage.LOBBY
-    del context.bot_data[id]['pve']
-    context.bot.send_message(chat_id=id,
-                             text='Битва закончилась'
-                                  'Главное меню - /main_menu')
+def finishing_PVE(update, context, id, extra=False):
+    if not extra:
+        context.bot_data[id]['stage'] = Stage.LOBBY
+        del context.bot_data[id]['pve']
+        context.bot.send_message(chat_id=id,
+                                 text='Битва закончилась, вы получаете опыт\n'
+                                      'Главное меню - /main_menu')
+    else:
+        context.bot_data[id]['stage'] = Stage.LOBBY
+        del context.bot_data[id]['pve']
+        context.bot.send_message(chat_id=id,
+                                 text='Битва закончилась досрочно, вы не получаете опыт\n'
+                                      'Главное меню - /main_menu')

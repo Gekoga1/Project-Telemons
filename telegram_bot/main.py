@@ -83,7 +83,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'exit_fight':
         finishing_PvP(update, context, is_extra=True, room=None)
     elif query.data == 'exit_pve':
-        finishing_PVE(update, context, id)
+        finishing_PVE(update, context, id, extra=True)
     elif query.data == 'spylit':
         monster_class = Spylit(lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
         monster_class.generate_skills()
