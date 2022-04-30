@@ -96,7 +96,7 @@ def process_message(update: Update, context: CallbackContext):  # обработ
     elif context.chat_data['waiting_for'] == NICKNAME:
         write_nickname(update, context)
     elif context.chat_data['waiting_for'] == COLLECTION_TEAM:
-        get_collection_team_num(update, context)
+        get_team_num(update, context)
     elif context.chat_data['waiting_for'] == ABILITY_NUM:
         get_ability_num(update, context)
     elif context.chat_data['waiting_for'] == TEAM_NUM:

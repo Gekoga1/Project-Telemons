@@ -5,7 +5,7 @@ from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQuery
 
 from creating_rooms.Room import Room, Stage
 from database_manager import User
-from game_logic.game_lib import result1, result2, result3, result4, Monster_Template
+from game_logic.game_lib import Monster_Template
 from configure.secrets import API_TOKEN
 
 logging.basicConfig(
