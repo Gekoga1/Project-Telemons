@@ -1,7 +1,7 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext
 
-from configure.configuraion import database_manager
+from configure.configuraion import database_manager, NOTHING
 from monsters import check_add_monster, change_team, change_collection
 
 
@@ -18,6 +18,7 @@ def name_from_telegram(update: Update, context: CallbackContext):  # имя из
 
 
 def choose_fst_monster(update: Update, context: CallbackContext):  # выбор стартового монстра
+    context.chat_data['waiting_for'] = NOTHING
     ques = InlineKeyboardMarkup([
         [
             InlineKeyboardButton('Каменный паук', callback_data='spylit'),

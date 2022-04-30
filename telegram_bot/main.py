@@ -1,5 +1,6 @@
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 
+from configure.configuraion import MONSTER_NUM, ABILITY_NUM, NOTHING, TEAM_NUM, COLLECTION_NUM, NICKNAME, COLLECTION_TEAM
 from authorisation import *
 from configure.secrets import API_TOKEN
 from fighting import *
@@ -36,6 +37,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'delete_no':
         query.edit_message_text('Процесс отменён')
     elif query.data == 'nickname':
+        context.chat_data['waiting_for'] = NICKNAME
         query.edit_message_text('Введите свой ник')
         write_nickname(update, context)
     elif query.data == 'tg_name':
@@ -73,7 +75,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'change team':
         write_team_num(update, context)
     elif query.data == 'change monster':
-        change_monster(update, context)
+        show_team_for_change(update, context)
     elif query.data == 'monster info':
         monster_info(update, context)
     elif query.data == 'main menu':
@@ -94,6 +96,8 @@ def check_query(update: Update, context: CallbackContext) -> None:
         pass
     elif context.chat_data['waiting_for'] == COLLECTION_NUM:
         select_monster(update, context)
+    elif context.chat_data['waiting_for'] == COLLECTION_TEAM:
+        select_monster_in_team(update, context)
     else:
         query.edit_message_text('Я вас не понимаю, повторите попытку ввода.')
 
@@ -111,10 +115,22 @@ def process_message(update: Update, context: CallbackContext):  # обработ
             get_team_num(update, context)
         elif context.bot_data[id]['waiting_for'] == NOTHING:
             return
+    if context.chat_data['waiting_for'] == MONSTER_NUM:
+        get_monster_num(update, context)
+    elif context.chat_data['waiting_for'] == NICKNAME:
+        write_nickname(update, context)
+    elif context.chat_data['waiting_for'] == COLLECTION_TEAM:
+        get_collection_team_num(update, context)
+    elif context.chat_data['waiting_for'] == ABILITY_NUM:
+        get_ability_num(update, context)
+    elif context.chat_data['waiting_for'] == TEAM_NUM:
+        get_team_num(update, context)
+    elif context.chat_data['waiting_for'] == NOTHING:
+        return
 
 
 def main_menu(update: Update, context: CallbackContext):  # главное меню
-    # context.chat_data['waiting_for'] = NOTHING
+    context.chat_data['waiting_for'] = NOTHING
     id = update.effective_user.id
     if id not in context.bot_data:
         add_bot_data(update=update, context=context, id=id)
@@ -241,3 +257,4 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
+
