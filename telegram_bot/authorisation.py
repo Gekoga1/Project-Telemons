@@ -21,7 +21,11 @@ def choose_fst_monster(update: Update, context: CallbackContext):  # выбор 
     ques = InlineKeyboardMarkup([
         [
             InlineKeyboardButton('Каменный паук', callback_data='spylit'),
-            InlineKeyboardButton('Ледяной лис', callback_data='ice'),
+        ],
+        [
+            InlineKeyboardButton('Ледяной лис', callback_data='ice')
+        ],
+        [
             InlineKeyboardButton('Травяной', callback_data='grass')
         ]
     ])
@@ -50,9 +54,8 @@ def registration(update: Update, context: CallbackContext, monster_class): # з�
         else:
             monster_id = int(monsters_ids[-1][0]) + 1
             team = f'{str(monster_id)}'
-        database_manager.add_monster(id=monster_id, name=monster_class.__class__.__name__,
-                                     level=monster_class.lvl, exp=monster_class.exp, shiny=monster_class.shiny,
-                                     skills=monster_class.convert_skills())
+        database_manager.add_monster(id=monster_id, uid=monster_class.uid, name=monster_class.name,
+                                     level=1, exp=0, shiny=False)
         create_fst_team(update, context, team)
         add_user(update, context, name, team)
         update.effective_user.send_message(f"Вы успешно зарегистрировались.\n\nВаше имя в игре {name}\n"

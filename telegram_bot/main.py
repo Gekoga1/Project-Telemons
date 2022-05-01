@@ -1,11 +1,15 @@
+import logging
+
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 
+from configure.configuraion import MONSTER_NUM, ABILITY_NUM, NOTHING, TEAM_NUM, COLLECTION_NUM, NICKNAME, COLLECTION_TEAM
 from authorisation import *
 from configure.secrets import API_TOKEN
 from fighting import *
-from game_logic.game_lib import *
+from game_logic.game_lib import Monster_Template
 from monsters import *
 from settings import *
+from random import choices
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
@@ -36,6 +40,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'delete_no':
         query.edit_message_text('Процесс отменён')
     elif query.data == 'nickname':
+        context.chat_data['waiting_for'] = NICKNAME
         query.edit_message_text('Введите свой ник')
         write_nickname(update, context)
     elif query.data == 'tg_name':
@@ -85,32 +90,37 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'exit_pve':
         finishing_PVE(update, context, id, extra=True)
     elif query.data == 'spylit':
-        monster_class = Spylit(lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
-        monster_class.generate_skills()
-        registration(update, context, monster_class)
+        try:
+            monster_class = Monster_Template(uid=1, lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
+            monster_class.generate_skills()
+            registration(update, context, monster_class)
+        except Exception as exception:
+            print(exception)
     elif query.data == 'ice':
         pass
     elif query.data == 'grass':
         pass
     elif context.chat_data['waiting_for'] == COLLECTION_NUM:
         select_monster(update, context)
+    elif context.chat_data['waiting_for'] == COLLECTION_TEAM:
+        select_monster_in_team(update, context)
     else:
         query.edit_message_text('Я вас не понимаю, повторите попытку ввода.')
 
 
 def process_message(update: Update, context: CallbackContext):  # обработчик текстовых сообщений
-    id = update.effective_user.id
-    if check_user(update, context) is False:
+    if context.chat_data['waiting_for'] == MONSTER_NUM:
+        get_monster_num(update, context)
+    elif context.chat_data['waiting_for'] == NICKNAME:
         write_nickname(update, context)
-    elif check_user(update, context) is True:
-        if context.bot_data[id]['waiting_for'] == MONSTER_NUM:
-            get_monster_num(update, context)
-        elif context.bot_data[id]['waiting_for'] == ABILITY_NUM:
-            get_ability_num(update, context)
-        elif context.bot_data[id]['waiting_for'] == TEAM_NUM:
-            get_team_num(update, context)
-        elif context.bot_data[id]['waiting_for'] == NOTHING:
-            return
+    elif context.chat_data['waiting_for'] == COLLECTION_TEAM:
+        get_collection_team_num(update, context)
+    elif context.chat_data['waiting_for'] == ABILITY_NUM:
+        get_ability_num(update, context)
+    elif context.chat_data['waiting_for'] == TEAM_NUM:
+        get_team_num(update, context)
+    elif context.chat_data['waiting_for'] == NOTHING:
+        return
 
 
 def main_menu(update: Update, context: CallbackContext):  # главное меню
@@ -184,6 +194,7 @@ def pars_team(team):
         exec(f'new_team.append({data[0]}(lvl={data[1]}, exp={data[2]}, shiny={data[3]}))')
         new_team[-1].deconvert_skills(data[4])
     return new_team
+
 
 
 # Пример функционала игры

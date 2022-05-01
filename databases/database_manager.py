@@ -36,10 +36,10 @@ class User:
         except Exception as exception:
             print(exception)
 
-    def add_monster(self, id, name, level, exp, shiny, skills):
+    def add_monster(self, id, uid, name, level, exp, shiny):
         try:
             req = """INSERT INTO users_monsters VALUES (?, ?, ?, ?, ?, ?)"""
-            self.cursor.execute(req, (id, name, level, exp, shiny, skills))
+            self.cursor.execute(req, (id, uid, name, level, exp, shiny))
             self.connection.commit()
         except Exception as ex:
             print(1)

@@ -146,9 +146,10 @@ class Monster_Template:
         # dict of evolutions
         # {lvl: evolution type}
         self.evolution_rule = {}
-
+        self.connection = sqlite3.connect('../databases/lib.db')
+        self.cur = self.connection.cursor()
         # name and types init
-        data = cur.execute(f"""SELECT name, type_1, type_2 FROM Monsters
+        data = self.cur.execute(f"""SELECT name, type_1, type_2 FROM Monsters
                             WHERE id = {self.uid}""").fetchone()
         self.name, self.type_1, self.type_2 = data
         if nickname == '':
@@ -157,13 +158,13 @@ class Monster_Template:
             self.nickname = nickname
 
         # stats init
-        data = cur.execute(f"""SELECT base_hp, base_atk, base_satk, base_speed FROM Monsters
+        data = self.cur.execute(f"""SELECT base_hp, base_atk, base_satk, base_speed FROM Monsters
                             WHERE id = {self.uid}""").fetchone()
         self.base_hp, self.base_atk, self.base_satk, self.base_speed = data
         self.iv_hp, self.iv_atk, self.iv_satk, self.iv_speed = iv
 
         # additional info init
-        data = cur.execute(f"""SELECT catch_rate FROM Monsters
+        data = self.cur.execute(f"""SELECT catch_rate FROM Monsters
                             WHERE id = {self.uid}""").fetchone()
         self.catch_rate = data
         self.shiny = shiny
