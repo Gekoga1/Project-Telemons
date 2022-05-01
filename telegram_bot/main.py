@@ -1,16 +1,17 @@
+
+import logging
+
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 
-from random import choices
-
-from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
-
+from configure.configuraion import MONSTER_NUM, ABILITY_NUM, NOTHING, TEAM_NUM, COLLECTION_NUM, NICKNAME, \
+    COLLECTION_TEAM, DELETE_FROM_TEAM
 from authorisation import *
-from configure.configuraion import NICKNAME
 from configure.secrets import API_TOKEN
 from fighting import *
-from game_logic.game_lib import Monster_Template
+from game_logic.game_lib import *
 from monsters import *
 from settings import *
+from random import choices
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
@@ -105,6 +106,14 @@ def check_query(update: Update, context: CallbackContext) -> None:
         select_monster(update, context)
     elif context.chat_data['waiting_for'] == COLLECTION_TEAM:
         select_monster_in_team(update, context)
+    elif query.data == 'want evolution':
+        want_evolution(update, context)
+    elif query.data == 'evolution':
+        evolution(update, context)
+    elif query.data == 'delete from team':
+        show_team_for_delete(update, context)
+    elif context.chat_data['waiting_for'] == DELETE_FROM_TEAM:
+        select_monster_for_delete(update, context)
     else:
         query.edit_message_text('Я вас не понимаю, повторите попытку ввода.')
 
