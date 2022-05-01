@@ -488,9 +488,10 @@ class Skill_Template:
         :param uid: id of skill in database
         """
         self.uid = uid
-
+        self.connection = sqlite3.connect('../databases/lib.db')
+        self.cur = self.connection.cursor()
         # init of basic data
-        data = cur.execute(f"""SELECT name, info, type, stat, power, accuracy FROM Skills
+        data = self.cur.execute(f"""SELECT name, info, type, stat, power, accuracy FROM Skills
                             WHERE id = {self.uid}""").fetchone()
         self.name, self.info, self.type, self.stat, self.power, self.accuracy = data
         self.c_accuracy = 100

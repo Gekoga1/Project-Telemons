@@ -1,15 +1,16 @@
-import logging
+from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
+
+from random import choices
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 
-from configure.configuraion import MONSTER_NUM, ABILITY_NUM, NOTHING, TEAM_NUM, COLLECTION_NUM, NICKNAME, COLLECTION_TEAM
 from authorisation import *
+from configure.configuraion import NICKNAME
 from configure.secrets import API_TOKEN
 from fighting import *
 from game_logic.game_lib import Monster_Template
 from monsters import *
 from settings import *
-from random import choices
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
@@ -188,12 +189,12 @@ def profile(update: Update, context: CallbackContext):
 
 
 def pars_team(team):
-    new_team = []
-    for uid in team.split(';'):
-        data = database_manager.get_monster_info(uid)
-        exec(f'new_team.append({data[0]}(lvl={data[1]}, exp={data[2]}, shiny={data[3]}))')
-        new_team[-1].deconvert_skills(data[4])
-    return new_team
+        new_team = []
+        for uid in team.split(';'):
+            data = database_manager.get_monster_info(uid)
+            exec(f'new_team.append({data[0]}(lvl={data[1]}, exp={data[2]}, shiny={data[3]}))')
+            new_team[-1].deconvert_skills(data[4])
+        return new_team
 
 
 

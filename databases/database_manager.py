@@ -165,7 +165,7 @@ class User:
         return ''.join(res)
 
     def get_monster_info(self, monster_id):
-        req = """SELECT name, level, exp, shiny, skills FROM users_monsters WHERE id = ?"""
+        req = """SELECT name, level, exp, shiny FROM users_monsters WHERE id = ?"""
         res = self.cursor.execute(req, (monster_id,)).fetchone()
         return res
 
