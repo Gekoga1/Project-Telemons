@@ -67,9 +67,9 @@ def get_monster_num(update: Update, context: CallbackContext):  # получае
 
 def monster_info(update: Update, context: CallbackContext):  # информация о монстре
     collection = get_collection_info(update, context)
-    monster_num = context.chat_data['monster_num']
-    text = f'Монстр: {collection[monster_num - 1][1]}\nУровень: {collection[monster_num - 1][2]}\n' \
-           f'Опыт: {collection[monster_num - 1][3]}'
+    # monster_num = int(context.chat_data['collection_num'])
+    text = f'Монстр: {collection[0][1]}\nУровень: {collection[0][2]}\n' \
+           f'Опыт: {collection[0][3]}'
     update.effective_user.send_message(text=text)
     monster_activity(update, context)
 
