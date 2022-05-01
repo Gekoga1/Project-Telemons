@@ -417,6 +417,7 @@ class Monster_Template:
         return out
 
 
+# Spylit line
 class Spylit(Monster_Template):
     def __init__(self, nickname='', lvl=1, exp=0, iv=(0, 0, 0, 0), shiny=False,
                  skills=None, owner=None):
@@ -480,6 +481,69 @@ class Spyland(Monster_Template):
         # dict of evolutions
         # {lvl: evolution type}
         self.evolution_rule = {}
+
+
+# Ailox line
+class Ailox(Monster_Template):
+    def __init__(self, nickname='', lvl=1, exp=0, iv=(0, 0, 0, 0), shiny=False,
+                 skills=None, owner=None):
+        uid = 4
+        super().__init__(uid, nickname, lvl, exp, iv, shiny, skills, owner)
+
+        # dict of skills with levels when they're learnable
+        # {lvl: skill id}
+        self.skills_rule = {
+            1: Screech(),
+            2: Slash(),
+            10: Frost_bite()
+        }
+
+        # dict of evolutions
+        # {lvl: evolution type}
+        self.evolution_rule = {
+            16: Ailoprex
+        }
+
+
+class Ailoprex(Monster_Template):
+    def __init__(self, nickname='', lvl=1, exp=0, iv=(0, 0, 0, 0), shiny=False,
+                 skills=None, owner=None):
+        uid = 5
+        super().__init__(uid, nickname, lvl, exp, iv, shiny, skills, owner)
+
+        # dict of skills with levels when they're learnable
+        # {lvl: skill id}
+        self.skills_rule = {
+            1: Screech(),
+            2: Slash(),
+            10: Frost_bite()
+        }
+
+        # dict of evolutions
+        # {lvl: evolution type}
+        self.evolution_rule = {
+            36: Ailopix
+        }
+
+
+class Ailopix(Monster_Template):
+    def __init__(self, nickname='', lvl=1, exp=0, iv=(0, 0, 0, 0), shiny=False,
+                 skills=None, owner=None):
+        uid = 6
+        super().__init__(uid, nickname, lvl, exp, iv, shiny, skills, owner)
+
+        # dict of skills with levels when they're learnable
+        # {lvl: skill id}
+        self.skills_rule = {
+            1: Screech(),
+            2: Slash(),
+            10: Frost_bite()
+        }
+
+        # dict of evolutions
+        # {lvl: evolution type}
+        self.evolution_rule = {
+        }
 
 
 class Skill_Template:
@@ -556,6 +620,12 @@ class Blunt_strike(Skill_Template):
 class Natures_call(Skill_Template):
     def __init__(self):
         uid = 5
+        super().__init__(uid)
+
+
+class Frost_bite(Skill_Template):
+    def __init__(self):
+        uid = 6
         super().__init__(uid)
 
 
