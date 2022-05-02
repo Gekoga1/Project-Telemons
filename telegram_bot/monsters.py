@@ -4,7 +4,7 @@ from telegram.ext import CallbackContext
 from configure.configuraion import database_manager, MONSTER_NUM, NOTHING, ABILITY_NUM, TEAM_NUM, COLLECTION_NUM, \
     COLLECTION_TEAM, DELETE_FROM_TEAM
 from main import main_menu
-from game_logic.game_lib import Spylit, Spylish, Spyland
+from game_logic.game_lib import Spylit, Spylish, Ailox, Ailoprex
 
 
 def team_or_collection(update: Update, context: CallbackContext):  # выбор, что смотреть: коллекция или команда
@@ -91,7 +91,7 @@ def monster_activity(update: Update, context: CallbackContext):  # предла�
         ],
         [
             InlineKeyboardButton('Вернуться в главное меню', callback_data='main menu'),
-            # InlineKeyboardButton('Посмотреть способности', callback_data='change ability')
+            InlineKeyboardButton('Посмотреть способности', callback_data='show ability')
         ]
     ])
     update.effective_user.send_message(text='Что вы хотите сделать?', reply_markup=ques)
@@ -152,12 +152,49 @@ def evolution(update: Update, context: CallbackContext):
                 update.effective_user.send_message('Произошла ошибка, повторите попытку эволюции позже')
     elif all_info[1] == 'Spyland':
         update.effective_user.send_message('Ваш монстр уже на последней ступени эволюции')
+    elif all_info[1] == 'Ailox':
+        monster = Ailox(lvl=int(all_info[2]), exp=int(all_info[3]), shiny=all_info[4], skills=all_info[-1].split(';'))
+        if all_info[3] < 100:
+            update.effective_user.send_message(
+                'У вас недостаточно опыта для эволюции, играйте бои, чтобы получить опыт')
+        elif all_info[2] < int(list(monster.evolution_rule.keys())[0]):
+            update.effective_user.send_message('У вас маленький уровень, играйте бои, чтобы поднять свой уровень')
+        elif all_info[3] >= 100 and all_info[2] >= int(list(monster.evolution_rule.keys())[0]):
+            new_monster = monster.get_exp(0)
+            new_name = 'Ailoprex'
+            new_lvl = new_monster.lvl
+            new_exp = new_monster.exp
+            new_skills = ';'.join(new_monster.skills)
+            try:
+                database_manager.change_monster_params(new_name, new_lvl, new_exp, new_skills, need_monster)
+                update.effective_user.send_message('Эволюция прошла успешно!')
+            except Exception as ex:
+                print(ex)
+                update.effective_user.send_message('Произошла ошибка, повторите попытку эволюции позже')
+    elif all_info[1] == 'Ailoprex':
+        monster = Spylit(lvl=int(all_info[2]), exp=int(all_info[3]), shiny=all_info[4], skills=all_info[-1].split(';'))
+        if all_info[3] < 100:
+            update.effective_user.send_message(
+                'У вас недостаточно опыта для эволюции, играйте бои, чтобы получить опыт')
+        elif all_info[2] < int(list(monster.evolution_rule.keys())[0]):
+            update.effective_user.send_message('У вас маленький уровень, играйте бои, чтобы поднять свой уровень')
+        elif all_info[3] >= 100 and all_info[2] >= int(list(monster.evolution_rule.keys())[0]):
+            new_monster = monster.get_exp(0)
+            new_name = 'Ailopix'
+            new_lvl = new_monster.lvl
+            new_exp = new_monster.exp
+            new_skills = ';'.join(new_monster.skills)
+            try:
+                database_manager.change_monster_params(new_name, new_lvl, new_exp, new_skills, need_monster)
+                update.effective_user.send_message('Эволюция прошла успешно!')
+            except Exception as ex:
+                print(ex)
+                update.effective_user.send_message('Произошла ошибка, повторите попытку эволюции позже')
     else:
         update.effective_user.send_message('проблемки')
 
 
 def show_team_for_change(update: Update, context: CallbackContext):
-    # update.effective_message.delete()
     context.chat_data['waiting_for'] = COLLECTION_TEAM
     keyboard = InlineKeyboardMarkup([
         [
@@ -177,54 +214,29 @@ def select_monster_in_team(update: Update, context: CallbackContext):
     change_monster(update, context)
 
 
-#
-# def show_abilities(update: Update, context: CallbackContext):
-#     try:
-#         abilities = get_abilities(update, context)
-#         print(abilities)
-#         user_id = update.effective_user.id
-#         collection = get_collection_info(update, context)
-#         print(collection)
-#         monster_num = int(context.chat_data['monster_num'])
-#         print(collection[monster_num - 1])
-#         monster_name = collection[monster_num - 1][1]
-#         print(monster_name)
-#     except Exception as ex:
-#         print(ex)
-#     text = f'Способности монстра {monster_name}: \n\n'
-#     for i in range(len(abilities)):
-#         text += f'{i + 1}) {abilities[i]}'
-#     update.effective_user.send_message(text)
-#     print_ability_num(update, context)
-#
-#
-# def get_abilities(update: Update, context: CallbackContext):
-#     user_id = update.effective_user.id
-#     collection = get_collection_info(update, context)
-#     monster_num = context.chat_data['monster_num']
-#     need_id = collection[monster_num - 1][0]
-#     abilities = database_manager.get_monster_skills(need_id).split(';')
-#     return abilities
-#
-#
-# def print_ability_num(update: Update, context: CallbackContext):  # спрашивает номер способности
-#     update.effective_user.send_message(text='Введите номер способности, которую хотите заменить')
-#     context.chat_data['waiting_for'] = ABILITY_NUM
-#     get_ability_num(update, context)
-#
-#
-# def get_ability_num(update: Update, context: CallbackContext):  # получает номер способности от пользователя
-#     try:
-#         ability_num = int(update.message.text)
-#         show_ability_list(update, context, ability_num)
-#     except Exception as ex:
-#         print(ex)
-#         update.message.reply_text('Вы ввели не число, попробуйте ещё раз')
-#
-#
-# def show_ability_list(update: Update, context: CallbackContext,
-#                       ability_num):  # показывает список доступных способностей
-#     update.message.reply_text('Здесь выводится список доступных способностей')
+def show_abilities(update: Update, context: CallbackContext):
+    abilities, info = get_abilities(update, context)
+    collection = get_collection_info(update, context)
+    monster_num = int(context.chat_data['monster_num'])
+    monster_name = collection[monster_num - 1][1]
+    text = f'Способности монстра {monster_name}: \n\n'
+    for i in range(len(abilities)):
+        text += f'{i + 1}) {abilities[i]}: {info[i].lower()}\n'
+    update.effective_user.send_message(text)
+
+
+def get_abilities(update: Update, context: CallbackContext):
+    user_id = update.effective_user.id
+    collection = get_collection_info(update, context)
+    monster_num = context.chat_data['monster_num']
+    need_id = collection[monster_num - 1][0]
+    print(need_id)
+    abilities = database_manager.get_monster_skills(need_id).split(';')
+    all_info = []
+    for skill in abilities:
+        temp = database_manager.get_skill_info(skill)
+        all_info.append(temp)
+    return abilities, all_info
 
 
 def team_info(update: Update, context: CallbackContext, only_show=False, reply_markup=None):
@@ -233,16 +245,20 @@ def team_info(update: Update, context: CallbackContext, only_show=False, reply_m
     monsters_id = database_manager.get_team(user_id).split(';')
     team = [database_manager.get_monster_info(int(i)) for i in monsters_id if i != '']
     text = 'Ваша команда:\n\n'
-    for i in range(len(team)):
-        text += f'{i + 1}) {team[i][1]}, уровень: {team[i][2]}, опыт: {team[i][3]}\n'
-    if only_show:
-        update.effective_user.send_message(text=text, reply_markup=reply_markup)
-        return
+    if len(team) == 0:
+        text = 'У вас пока нет монстров в команде. Выберите монстров для команды из коллекции'
+        update.effective_user.send_message(text)
     else:
-        if len(team) < 4:
-            text += f'\nВы можете добавить в команду ещё {4 - len(team)} монстра'
-        update.effective_user.send_message(text=text)
-        team_activity(update, context)
+        for i in range(len(team)):
+            text += f'{i + 1}) {team[i][1]}, уровень: {team[i][2]}, опыт: {team[i][3]}\n'
+        if only_show:
+            update.effective_user.send_message(text=text, reply_markup=reply_markup)
+            return
+        else:
+            if len(team) < 4:
+                text += f'\nВы можете добавить в команду ещё {4 - len(team)} монстра'
+            update.effective_user.send_message(text=text)
+            team_activity(update, context)
 
 
 def team_activity(update: Update, context: CallbackContext):  # информация о команде

@@ -1,4 +1,3 @@
-
 import logging
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
@@ -47,6 +46,8 @@ def check_query(update: Update, context: CallbackContext) -> None:
         write_nickname(update, context)
     elif query.data == 'tg_name':
         name_from_telegram(update, context)
+    elif query.data == 'delete from team':
+        show_team_for_delete(update, context)
     elif query.data == 'game_settings':
         game_settings(update=update, context=context)
     elif query.data == 'choose_type_fight':
@@ -66,7 +67,6 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data.split(' ')[0] in ['Атака', 'Смена']:
         main_fight(update=update, context=context, text=query.data)
 
-
     # elif query.data in rooms.keys():
     #     select_room(update, context)
     #     context.bot_data[id]['stage'] = Stage.PLAYING_GAME
@@ -85,8 +85,8 @@ def check_query(update: Update, context: CallbackContext) -> None:
         monster_info(update, context)
     elif query.data == 'main menu':
         main_menu(update, context)
-    elif query.data == 'change ability':
-        print_ability_num(update, context)
+    elif query.data == 'show ability':
+        show_abilities(update, context)
     elif query.data == 'exit_fight':
         finishing_PvP(update, context, is_extra=True, room=None)
     elif query.data == 'exit_pve':
@@ -99,7 +99,9 @@ def check_query(update: Update, context: CallbackContext) -> None:
         except Exception as exception:
             print(exception)
     elif query.data == 'ice':
-        pass
+        monster_class = Ailox(lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
+        monster_class.generate_skills()
+        registration(update, context, monster_class)
     elif query.data == 'grass':
         pass
     elif context.chat_data['waiting_for'] == COLLECTION_NUM:
@@ -110,8 +112,6 @@ def check_query(update: Update, context: CallbackContext) -> None:
         want_evolution(update, context)
     elif query.data == 'evolution':
         evolution(update, context)
-    elif query.data == 'delete from team':
-        show_team_for_delete(update, context)
     elif context.chat_data['waiting_for'] == DELETE_FROM_TEAM:
         select_monster_for_delete(update, context)
     else:
@@ -134,7 +134,6 @@ def process_message(update: Update, context: CallbackContext):  # обработ
 
 
 def main_menu(update: Update, context: CallbackContext):  # главное меню
-    # context.chat_data['waiting_for'] = NOTHING
     id = update.effective_user.id
     if id not in context.bot_data:
         add_bot_data(update=update, context=context, id=id)
@@ -164,7 +163,7 @@ def main_menu(update: Update, context: CallbackContext):  # главное ме�
             reply_markup = InlineKeyboardMarkup([
                 [
                     InlineKeyboardButton("Выбор боёв", callback_data='choose_type_fight'),
-                    InlineKeyboardButton("Просмотр монстров", callback_data='monsters'),
+                    InlineKeyboardButton("Просмотр монстров", callback_data='monsters')
                 ],
                 [
                     InlineKeyboardButton('Настройки игры', callback_data='game_settings')
@@ -198,13 +197,12 @@ def profile(update: Update, context: CallbackContext):
 
 
 def pars_team(team):
-        new_team = []
-        for uid in team.split(';'):
-            data = database_manager.get_monster_info(uid)
-            exec(f'new_team.append({data[0]}(lvl={data[1]}, exp={data[2]}, shiny={data[3]}))')
-            new_team[-1].deconvert_skills(data[4])
-        return new_team
-
+    new_team = []
+    for monster_id in team.split(';'):
+        data = database_manager.get_monster_info(monster_id)
+        exec(f'new_team.append({data[1]}(lvl={data[2]}, exp={data[3]}, shiny={data[4]}))')
+        new_team[-1].deconvert_skills(data[5])
+    return new_team
 
 
 # Пример функционала игры
