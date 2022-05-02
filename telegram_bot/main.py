@@ -80,7 +80,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'change team':
         write_team_num(update, context)
     elif query.data == 'change monster':
-        change_monster(update, context)
+        change_monster()
     elif query.data == 'monster info':
         monster_info(update, context)
     elif query.data == 'main menu':
@@ -92,12 +92,9 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'exit_pve':
         finishing_PVE(update, context, id, extra=True)
     elif query.data == 'spylit':
-        try:
-            monster_class = Monster_Template(uid=1, lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
-            monster_class.generate_skills()
-            registration(update, context, monster_class)
-        except Exception as exception:
-            print(exception)
+        monster_class = Monster_Template(uid=1, lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
+        monster_class.generate_skills()
+        registration(update, context, monster_class)
     elif query.data == 'ice':
         pass
     elif query.data == 'grass':

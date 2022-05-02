@@ -432,8 +432,8 @@ def add_new_monster(update: Update, context: CallbackContext, monster_class):  #
         return False
 
 
-def change_monsters_exp(update: Update, context: CallbackContext, add_exp):  # изменение опыта монстра
-    user_id = update.effective_user.id
+def change_monsters_exp(update: Update, context: CallbackContext, add_exp, user_id):  # изменение опыта монстра
+    # user_id = update.effective_user.id
     try:
         monsters_id = database_manager.get_team(user_id).split(';')
         for i in monsters_id:

@@ -173,3 +173,23 @@ class User:
         req = """SELECT name FROM users_monsters WHERE id = ?"""
         res = self.cursor.execute(req, (monster_id,)).fetchone()
         return ''.join(res)
+
+    def get_monster_skills(self, monster_id):
+        req = """SELECT skills FROM users_monsters WHERE id = ?"""
+        res = self.cursor.execute(req, (monster_id,)).fetchone()
+        return ''.join(res)
+
+    def change_monster_exp(self, new_exp, monster_id):
+        req = """UPDATE users_monsters SET exp = ? WHERE id = ?"""
+        self.cursor.execute(req, (new_exp, monster_id,))
+        self.connection.commit()
+
+    def change_monster_params(self, new_name, new_lvl, new_exp, new_skills, monster_id):
+        req = """UPDATE users_monsters SET name = ?, level = ?, exp = ?, skills = ? WHERE id = ?"""
+        self.cursor.execute(req, (new_name, new_lvl, new_exp, new_skills, monster_id))
+        self.connection.commit()
+
+    def get_monster_exp(self, monster_id):
+        req = """SELECT exp FROM users_monsters WHERE id = ?"""
+        res = self.cursor.execute(req, (monster_id,)).fetchone()
+        return res[0]
