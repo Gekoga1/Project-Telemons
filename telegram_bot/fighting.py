@@ -400,6 +400,7 @@ def continue_fighting_PVE(update: Update, context: CallbackContext, text, id):
 
 def finishing_PVE(update, context, id, extra=False):
     if not extra:
+        change_monsters_exp(update, context, 100, id)
         context.bot_data[id]['stage'] = Stage.LOBBY
         del context.bot_data[id]['pve']
         context.bot.send_message(chat_id=id,
