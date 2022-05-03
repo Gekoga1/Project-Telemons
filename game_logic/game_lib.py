@@ -474,8 +474,7 @@ class Spyland(Monster_Template):
         self.skills_rule = {
             1: Screech(),
             2: Slash(),
-            10: Blunt_strike(),
-            15: Natures_call()
+            10: Blunt_strike()
         }
 
         # dict of evolutions
@@ -538,6 +537,69 @@ class Ailopix(Monster_Template):
             1: Screech(),
             2: Slash(),
             10: Frost_bite()
+        }
+
+        # dict of evolutions
+        # {lvl: evolution type}
+        self.evolution_rule = {
+        }
+
+
+# Wulvit line
+class Wulvit(Monster_Template):
+    def __init__(self, nickname='', lvl=1, exp=0, iv=(0, 0, 0, 0), shiny=False,
+                 skills=None, owner=None):
+        uid = 7
+        super().__init__(uid, nickname, lvl, exp, iv, shiny, skills, owner)
+
+        # dict of skills with levels when they're learnable
+        # {lvl: skill id}
+        self.skills_rule = {
+            1: Screech(),
+            2: Slash(),
+            10: Natures_call()
+        }
+
+        # dict of evolutions
+        # {lvl: evolution type}
+        self.evolution_rule = {
+            16: Wullies
+        }
+
+
+class Wullies(Monster_Template):
+    def __init__(self, nickname='', lvl=1, exp=0, iv=(0, 0, 0, 0), shiny=False,
+                 skills=None, owner=None):
+        uid = 8
+        super().__init__(uid, nickname, lvl, exp, iv, shiny, skills, owner)
+
+        # dict of skills with levels when they're learnable
+        # {lvl: skill id}
+        self.skills_rule = {
+            1: Screech(),
+            2: Slash(),
+            10: Natures_call()
+        }
+
+        # dict of evolutions
+        # {lvl: evolution type}
+        self.evolution_rule = {
+            36: Wulkiss
+        }
+
+
+class Wulkiss(Monster_Template):
+    def __init__(self, nickname='', lvl=1, exp=0, iv=(0, 0, 0, 0), shiny=False,
+                 skills=None, owner=None):
+        uid = 9
+        super().__init__(uid, nickname, lvl, exp, iv, shiny, skills, owner)
+
+        # dict of skills with levels when they're learnable
+        # {lvl: skill id}
+        self.skills_rule = {
+            1: Screech(),
+            2: Slash(),
+            10: Natures_call()
         }
 
         # dict of evolutions
