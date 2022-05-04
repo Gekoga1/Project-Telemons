@@ -3,7 +3,7 @@ import logging
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 
 from configure.configuraion import MONSTER_NUM, ABILITY_NUM, NOTHING, TEAM_NUM, COLLECTION_NUM, NICKNAME, \
-    COLLECTION_TEAM, DELETE_FROM_TEAM
+    COLLECTION_TEAM, DELETE_FROM_TEAM, SKILL_CHANGE
 from authorisation import *
 from configure.secrets import API_TOKEN
 from fighting import *
@@ -113,6 +113,10 @@ def check_query(update: Update, context: CallbackContext) -> None:
         evolution(update, context)
     elif context.chat_data['waiting_for'] == DELETE_FROM_TEAM:
         select_monster_for_delete(update, context)
+    elif query.data == 'learn_skills':
+        learn_skills(update, context)
+    elif context.chat_data['waiting_for'] == SKILL_CHANGE:
+        select_skill_for_change(update, context)
     else:
         query.edit_message_text('Я вас не понимаю, повторите попытку ввода.')
 
