@@ -80,7 +80,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'change team':
         write_team_num(update, context)
     elif query.data == 'change monster':
-        change_monster()
+        show_team_for_change(update, context)
     elif query.data == 'monster info':
         monster_info(update, context)
     elif query.data == 'main menu':
@@ -92,7 +92,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'exit_pve':
         finishing_PVE(update, context, id, extra=True)
     elif query.data == 'spylit':
-        monster_class = Monster_Template(uid=1, lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
+        monster_class = Spylit(lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
         monster_class.generate_skills()
         registration(update, context, monster_class)
     elif query.data == 'ice':
@@ -100,7 +100,9 @@ def check_query(update: Update, context: CallbackContext) -> None:
         monster_class.generate_skills()
         registration(update, context, monster_class)
     elif query.data == 'grass':
-        pass
+        monster_class = Wulvit(lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
+        monster_class.generate_skills()
+        registration(update, context, monster_class)
     elif context.chat_data['waiting_for'] == COLLECTION_NUM:
         select_monster(update, context)
     elif context.chat_data['waiting_for'] == COLLECTION_TEAM:
@@ -195,6 +197,7 @@ def info(update: Update, context: CallbackContext) -> None:
                                        'Если монстр достигнет определённого уровня и опыта, он может эволюциониовать'
                                        ' и получить новые способности\n\nЖелаем удачи!\n\nЧтобы вернуться'
                                        ' в главное меню вызовите команду /main_menu')
+
 
 # Вывод данных о пользователе(больше для дебага)
 def profile(update: Update, context: CallbackContext):

@@ -22,11 +22,11 @@ class User:
             id    INTEGER PRIMARY KEY 
                           UNIQUE
                         NOT NULL,
-            uid INTEGER NOT NULL,
             name  TEXT    NOT NULL,
             level INTEGER NOT NULL,
             exp   INTEGER NOT NULL,
-            shiny BOOLEAN NOT NULL
+            shiny BOOLEAN NOT NULL,
+            skills TEXT
         );
         """
         try:
@@ -36,10 +36,10 @@ class User:
         except Exception as exception:
             print(exception)
 
-    def add_monster(self, id, uid, name, level, exp, shiny):
+    def add_monster(self, id, name, level, exp, shiny, skills):
         try:
             req = """INSERT INTO users_monsters VALUES (?, ?, ?, ?, ?, ?)"""
-            self.cursor.execute(req, (id, uid, name, level, exp, shiny))
+            self.cursor.execute(req, (id, name, level, exp, shiny, skills))
             self.connection.commit()
         except Exception as ex:
             print(1)

@@ -2,7 +2,7 @@ import logging
 import sqlite3
 from math import floor, ceil
 from random import choices, choice, randint
-from typing import Union
+from typing import Union, List
 from configure.configuraion import database_manager
 
 logging.basicConfig(
@@ -146,7 +146,7 @@ class Monster_Template:
         # dict of evolutions
         # {lvl: evolution type}
         self.evolution_rule = {}
-        self.connection = sqlite3.connect('../databases/lib.db')
+        self.connection = sqlite3.connect('../databases/data.db')
         self.cur = self.connection.cursor()
         # name and types init
         data = self.cur.execute(f"""SELECT name, type_1, type_2 FROM Monsters
@@ -614,7 +614,7 @@ class Skill_Template:
         :param uid: id of skill in database
         """
         self.uid = uid
-        self.connection = sqlite3.connect('../databases/lib.db')
+        self.connection = sqlite3.connect('../databases/data.db')
         self.cur = self.connection.cursor()
         # init of basic data
         data = self.cur.execute(f"""SELECT name, info, type, stat, power, accuracy FROM Skills
@@ -692,7 +692,7 @@ class Frost_bite(Skill_Template):
 
 
 class Battle:
-    def __init__(self, blue_player, blue_team: list[Monster_Template], red_player, red_team: list[Monster_Template]):
+    def __init__(self, blue_player, blue_team: List[Monster_Template], red_player, red_team: List[Monster_Template]):
         for monster in blue_team + red_team:
             monster.reset()
 
