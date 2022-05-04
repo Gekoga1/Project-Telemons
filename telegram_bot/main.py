@@ -80,7 +80,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'change team':
         write_team_num(update, context)
     elif query.data == 'change monster':
-        change_monster(update, context)
+        change_monster()
     elif query.data == 'monster info':
         monster_info(update, context)
     elif query.data == 'main menu':
@@ -92,12 +92,9 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'exit_pve':
         finishing_PVE(update, context, id, extra=True)
     elif query.data == 'spylit':
-        try:
-            monster_class = Monster_Template(uid=1, lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
-            monster_class.generate_skills()
-            registration(update, context, monster_class)
-        except Exception as exception:
-            print(exception)
+        monster_class = Monster_Template(uid=1, lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
+        monster_class.generate_skills()
+        registration(update, context, monster_class)
     elif query.data == 'ice':
         monster_class = Ailox(lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
         monster_class.generate_skills()
@@ -185,8 +182,19 @@ def propose_change_user_nickname(update: Update, context: CallbackContext, query
 
 
 def info(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text('Это игра')
-
+    update.effective_user.send_message('Приветствуем Вас в нашей игре!\n\nПравила:\n1) Вы являетесь тренером монстров\n'
+                                       '2) Главная цель игры - собрать всех монстров и стать самым сильным тренером\n'
+                                       '3) Каждый монстрик имеет свой тип, а иногда даже два\n'
+                                       '4) Вы можете выбрать 4 основных монстра в вашу команду и с ними проводить бои'
+                                       ' против случайных монстров (PvE) или против других игроков-тренеров (PvP)\n'
+                                       '5) Во время боя Вам нужно сначала либо выбрать следующую атаку, '
+                                       'либо заменить активного монстра, и так пока одна из команд '
+                                       'не будет полностью повержена\n6) В PvE Вы можете приручить нового монстра, '
+                                       'как только у него останется немного hp\n7) НО! Нельзя приручить побеждённого'
+                                       ' монстрика\n8) После боя у всей команды повышается уровень, опыт. '
+                                       'Если монстр достигнет определённого уровня и опыта, он может эволюциониовать'
+                                       ' и получить новые способности\n\nЖелаем удачи!\n\nЧтобы вернуться'
+                                       ' в главное меню вызовите команду /main_menu')
 
 # Вывод данных о пользователе(больше для дебага)
 def profile(update: Update, context: CallbackContext):

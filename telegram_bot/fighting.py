@@ -4,6 +4,7 @@ from telegram.ext import CallbackContext
 from configure.configuraion import rooms, teams
 from creating_rooms.Room import Room, Stage
 from game_logic.game_lib import *
+from monsters import change_monsters_exp
 
 
 def choose_type_fight(update: Update, context: CallbackContext):
@@ -120,16 +121,22 @@ def test_game(update: Update, context: CallbackContext, room) -> None:
 
 def choose(update: Update, context: CallbackContext, room) -> None:
     for j, a in enumerate(room.player_list):
-        if j == 0:
+        if a == room.blue_player:
             skill = room.room_battle.blue_active.get_skills()
             skills = []
             for i in skill:
                 if i != 'None':
                     skills.append([InlineKeyboardButton(i, callback_data=f'Атака {skill.index(i) + 1}')])
-            skills.append([InlineKeyboardButton('Выход из боя', callback_data=f'exit_fight')])
+            skills.append([InlineKeyboardButton('Смена персонажа', callback_data=f'Смена Персонажа')])
+            skills.append([InlineKeyboardButton('❌Выход из боя❌', callback_data=f'exit_fight')])
             reply_markup = InlineKeyboardMarkup(skills)
 
-            context.bot.send_message(chat_id=a, text=room.room_battle.print(reverse=True),
+            your_name = database_manager.get_gamename(user_id=room.blue_player)
+            opponent_name = database_manager.get_gamename(user_id=room.red_player)
+            fight_data = room.room_battle.print(reverse=True).split('\n')
+            context.bot.send_message(chat_id=a,
+                                     text=f'Команда {your_name}\n{fight_data[0]}\n{fight_data[1]}\n'
+                                          f'Команда {opponent_name} \n{fight_data[3]}\n{fight_data[4]}',
                                      reply_markup=reply_markup)
         else:
             skill = room.room_battle.red_active.get_skills()
@@ -137,10 +144,16 @@ def choose(update: Update, context: CallbackContext, room) -> None:
             for i in skill:
                 if i != 'None':
                     skills.append([InlineKeyboardButton(i, callback_data=f'Атака {skill.index(i) + 1}')])
-            skills.append([InlineKeyboardButton('Выход из боя', callback_data=f'exit_fight')])
+            skills.append([InlineKeyboardButton('Смена персонажа', callback_data=f'Смена Персонажа')])
+            skills.append([InlineKeyboardButton('❌Выход из боя❌', callback_data=f'exit_fight')])
             reply_markup = InlineKeyboardMarkup(skills)
 
-            context.bot.send_message(chat_id=a, text=room.room_battle.print(reverse=True),
+            your_name = database_manager.get_gamename(user_id=room.blue_player)
+            opponent_name = database_manager.get_gamename(user_id=room.red_player)
+            fight_data = room.room_battle.print(reverse=False).split('\n')
+            context.bot.send_message(chat_id=a,
+                                     text=f'Команда {opponent_name}\n{fight_data[0]}\n{fight_data[1]}\n'
+                                          f'Команда {your_name} \n{fight_data[3]}\n{fight_data[4]}',
                                      reply_markup=reply_markup)
 
 
@@ -212,29 +225,40 @@ def main_fight(update: Update, context: CallbackContext, text) -> None:
 
         room.room_battle.update()
 
-        for j, i in enumerate(room.player_list):
-            if j == 0:
-                your_name = database_manager.get_gamename(user_id=i)
-                context.bot.send_message(chat_id=i,
-                                         text=f'Команда {your_name} \n{room.room_battle.print(reverse=False)}')
-            else:
-                your_name = database_manager.get_gamename(user_id=i)
-                context.bot.send_message(chat_id=i,
-                                         text=f'Команда {your_name}\n{room.room_battle.print(reverse=False)}')
-
+        # for i in room.player_list:
+        #     your_name = database_manager.get_gamename(user_id=i)
+        #     if i == room.blue_player:
+        #         opponent_name = database_manager.get_gamename(user_id=room.red_player)
+        #         fight_data = room.room_battle.print(reverse=False).split('\n')
+        #         context.bot.send_message(chat_id=i,
+        #                                  text=f'Команда {your_name}\n{"".join(fight_data[0:1])}\n{"".join(fight_data[1])}\n'
+        #                                       f'Команда {opponent_name} \n{"".join(fight_data[3:])}')
+        #     else:
+        #         opponent_name = database_manager.get_gamename(user_id=room.blue_player)
+        #         fight_data = room.room_battle.print(reverse=True).split('\n')
+        #         context.bot.send_message(chat_id=i,
+        #                                  text=f'Команда {your_name}\n{"".join(fight_data[0:1])}\n{"".join(fight_data[1])}\n'
+        #                                       f'Команда {opponent_name} \n{"".join(fight_data[3:])}')
         if not room.room_battle.blue_active.alive:
-            pass
+            if all(map(lambda x: not x.alive, room.room_battle.blue_team)):
+                pass
+            else:
+                propose_change_monster(update, context, room.room_battle.blue_active, 'blue', room)
         elif not room.room_battle.red_active.alive:
-            pass
-
+            if all(map(lambda x: not x.alive, room.room_battle.red_team)):
+                pass
+            else:
+                propose_change_monster(update, context, room.room_battle.red_active, 'red', room)
         if all(map(lambda x: not x.alive, room.room_battle.blue_team)):
             your_name = database_manager.get_gamename(user_id=room.red_player)
-            context.bot.send_message(chat_id=room.red_player, text=f'Команда {your_name} выиграла!!!')
+            context.bot.send_message(chat_id=room.red_player, text=f'Поздравляем! Вы победили!')
+            context.bot.send_message(chat_id=room.blue_player, text=f'К сожалению, {your_name} вас одолел.')
             room.winner = room.red_player
             return finishing_PvP(update, context, room)
         elif all(map(lambda x: not x.alive, room.room_battle.red_team)):
             your_name = database_manager.get_gamename(user_id=room.red_player)
-            context.bot.send_message(chat_id=room.blue_player, text=f'Команда {your_name} выиграла!!!')
+            context.bot.send_message(chat_id=room.blue_player, text=f'Поздравляем! Вы победили!')
+            context.bot.send_message(chat_id=room.red_player, text=f'К сожалению, {your_name} вас одолел.')
             room.winner = room.blue_player
             return finishing_PvP(update, context, room)
         #     context.bot.send_message(chat_id=user_id, text=f'ход совершён')
@@ -278,8 +302,7 @@ def change_monster(update: Update, context: CallbackContext, monster, player_tea
 
 def finishing_PvP(update: Update, context: CallbackContext, room, is_extra=False) -> None:
     if is_extra is not True:
-        for member in teams[room.winner]:
-            member.get_exp(amount=100)
+        change_monsters_exp(update, context, 100, room.winner)
         for user_id in room.player_list:
             try:
                 context.bot_data[user_id]['stage'] = Stage.LOBBY
@@ -377,6 +400,7 @@ def continue_fighting_PVE(update: Update, context: CallbackContext, text, id):
 
 def finishing_PVE(update, context, id, extra=False):
     if not extra:
+        change_monsters_exp(update, context, 100, id)
         context.bot_data[id]['stage'] = Stage.LOBBY
         del context.bot_data[id]['pve']
         context.bot.send_message(chat_id=id,
