@@ -91,6 +91,14 @@ def check_query(update: Update, context: CallbackContext) -> None:
         finishing_PvP(update, context, is_extra=True, room=None)
     elif query.data == 'exit_pve':
         finishing_PVE(update, context, id, extra=True)
+    elif query.data == 'choose_fst_monster':
+        choose_fst_monster(update, context)
+    elif query.data == 'propose_spylit':
+        show_spylit_information(update, context)
+    elif query.data == 'propose_ice':
+        show_ice_information(update, context)
+    elif query.data == 'propose_grass':
+        show_grass_information(update, context)
     elif query.data == 'spylit':
         monster_class = Monster_Template(uid=1, lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
         monster_class.generate_skills()
@@ -207,11 +215,18 @@ def profile(update: Update, context: CallbackContext):
 
 def pars_team(team):
         new_team = []
-        for uid in team.split(';'):
-            data = database_manager.get_monster_info(uid)
-            exec(f'new_team.append({data[0]}(lvl={data[1]}, exp={data[2]}, shiny={data[3]}))')
-            new_team[-1].deconvert_skills(data[4])
-        return new_team
+        try:
+            for uid in team.split(';'):
+                data = database_manager.get_monster_info(uid)
+                if data[4] == 0:
+                    check_shiny = False
+                else:
+                    check_shiny = True
+                exec(f'new_team.append({data[1]}(lvl={data[2]}, exp={data[3]}, shiny={check_shiny}))')
+                new_team[-1].deconvert_skills(data[5])
+            return new_team
+        except Exception as exception:
+            print(exception)
 
 
 

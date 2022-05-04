@@ -1,3 +1,5 @@
+import random
+
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext
 
@@ -239,16 +241,7 @@ def main_fight(update: Update, context: CallbackContext, text) -> None:
         #         context.bot.send_message(chat_id=i,
         #                                  text=f'Команда {your_name}\n{"".join(fight_data[0:1])}\n{"".join(fight_data[1])}\n'
         #                                       f'Команда {opponent_name} \n{"".join(fight_data[3:])}')
-        if not room.room_battle.blue_active.alive:
-            if all(map(lambda x: not x.alive, room.room_battle.blue_team)):
-                pass
-            else:
-                propose_change_monster(update, context, room.room_battle.blue_active, 'blue', room)
-        elif not room.room_battle.red_active.alive:
-            if all(map(lambda x: not x.alive, room.room_battle.red_team)):
-                pass
-            else:
-                propose_change_monster(update, context, room.room_battle.red_active, 'red', room)
+
         if all(map(lambda x: not x.alive, room.room_battle.blue_team)):
             your_name = database_manager.get_gamename(user_id=room.red_player)
             context.bot.send_message(chat_id=room.red_player, text=f'Поздравляем! Вы победили!')
@@ -261,6 +254,16 @@ def main_fight(update: Update, context: CallbackContext, text) -> None:
             context.bot.send_message(chat_id=room.red_player, text=f'К сожалению, {your_name} вас одолел.')
             room.winner = room.blue_player
             return finishing_PvP(update, context, room)
+        if not room.room_battle.blue_active.alive:
+            if all(map(lambda x: not x.alive, room.room_battle.blue_team)):
+                pass
+            else:
+                propose_change_monster(update, context, room.room_battle.blue_active, 'blue', room)
+        elif not room.room_battle.red_active.alive:
+            if all(map(lambda x: not x.alive, room.room_battle.red_team)):
+                pass
+            else:
+                propose_change_monster(update, context, room.room_battle.red_active, 'red', room)
         #     context.bot.send_message(chat_id=user_id, text=f'ход совершён')
         # for user_id in room.round_data:
         #     context.bot.send_message(chat_id=user_id, text=room.round_data[user_id])
@@ -332,7 +335,7 @@ def finishing_PvP(update: Update, context: CallbackContext, room, is_extra=False
 
 
 def fighting_PVE(update: Update, context: CallbackContext):
-    dummy = Spyland(lvl=5)
+    dummy = random.choice([Spyland(lvl=5)])
     dummy.generate_skills()
 
     id = update.effective_user.id
