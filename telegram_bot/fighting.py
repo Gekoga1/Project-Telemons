@@ -1,4 +1,4 @@
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 from telegram.ext import CallbackContext
 
 from configure.configuraion import rooms, teams
@@ -20,7 +20,7 @@ def choose_type_fight(update: Update, context: CallbackContext):
             InlineKeyboardButton('Вернуться в главное меню', callback_data='main menu')
         ]
     ])
-    query.edit_message_text('Выберите тип сражения', reply_markup=fights)
+    query.edit_message_text("Выберите тип сражения", reply_markup=fights)
 
 
 def fight_PVP(update: Update, context: CallbackContext):
@@ -133,7 +133,10 @@ def choose(update: Update, context: CallbackContext, room) -> None:
 
             your_name = database_manager.get_gamename(user_id=room.blue_player)
             opponent_name = database_manager.get_gamename(user_id=room.red_player)
-            fight_data = room.room_battle.print(reverse=True).split('\n')
+            fight_data = room.room_battle.print(reverse=True)
+            fight_data.remove('<code>')
+            fight_data.remove('</code>')
+            fight_data = fight_data.split('\n')
             context.bot.send_message(chat_id=a,
                                      text=f'Команда {your_name}\n{fight_data[0]}\n{fight_data[1]}\n'
                                           f'Команда {opponent_name} \n{fight_data[3]}\n{fight_data[4]}',
@@ -150,7 +153,10 @@ def choose(update: Update, context: CallbackContext, room) -> None:
 
             your_name = database_manager.get_gamename(user_id=room.blue_player)
             opponent_name = database_manager.get_gamename(user_id=room.red_player)
-            fight_data = room.room_battle.print(reverse=False).split('\n')
+            fight_data = room.room_battle.print(reverse=False)
+            fight_data.remove('<code>')
+            fight_data.remove('</code>')
+            fight_data = fight_data.split('\n')
             context.bot.send_message(chat_id=a,
                                      text=f'Команда {opponent_name}\n{fight_data[0]}\n{fight_data[1]}\n'
                                           f'Команда {your_name} \n{fight_data[3]}\n{fight_data[4]}',
@@ -347,7 +353,8 @@ def fighting_PVE(update: Update, context: CallbackContext):
             skills.append([InlineKeyboardButton(i, callback_data=f'Атака {skill.index(i) + 1}')])
     skills.append([InlineKeyboardButton('Выход из боя', callback_data=f'exit_pve')])
     reply_markup = InlineKeyboardMarkup(skills)
-    context.bot.send_message(chat_id=id, text=battle.print(reverse=False), reply_markup=reply_markup)
+    context.bot.send_message(chat_id=id, text=battle.print(reverse=False), reply_markup=reply_markup,
+                             parse_mode=ParseMode.HTML)
     context.bot_data[id]['stage'] = Stage.PLAY_PVE
     context.bot_data[id]['pve'] = battle
 
@@ -393,7 +400,8 @@ def continue_fighting_PVE(update: Update, context: CallbackContext, text, id):
         skills.append([InlineKeyboardButton('Выход из боя', callback_data=f'exit_pve')])
         reply_markup = InlineKeyboardMarkup(skills)
 
-        context.bot.send_message(chat_id=id, text=battle.print(), reply_markup=reply_markup)
+        context.bot.send_message(chat_id=id, text=battle.print(), reply_markup=reply_markup,
+                                 parse_mode=ParseMode.HTML)
     except Exception as exception:
         print(exception)
 

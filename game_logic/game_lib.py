@@ -165,7 +165,7 @@ class Monster_Template:
 
         # additional info init
         data = self.cur.execute(f"""SELECT catch_rate FROM Monsters
-                            WHERE id = {self.uid}""").fetchone()
+                            WHERE id = {self.uid}""").fetchone()[0]
         self.catch_rate = data
         self.shiny = shiny
 
@@ -185,7 +185,8 @@ class Monster_Template:
 
     def __copy__(self):
         return self.__class__(uid=self.uid, lvl=self.lvl, exp=self.exp,
-                              iv=(0, 0, 0, 0), shiny=self.shiny, skills=self.skills, owner=None)
+                              iv=(self.iv_hp, self.iv_atk, self.iv_satk, self.iv_speed),
+                              shiny=self.shiny, skills=self.skills, owner=None)
 
     def on_change(self):
         pass
@@ -234,12 +235,12 @@ class Monster_Template:
         """
         if self.shiny:
             return f"{self.get_name(nickname=nickname)}" \
-                   f"{' ' * (19 - len(f'{self.get_name(nickname=nickname)}lv.{self.lvl}'))}" \
+                   f"{' ' * (18 - len(f'{self.get_name(nickname=nickname)}lv.{self.lvl}'))}" \
                    f"lv.{self.lvl}\n" \
                    f"{self.generate_bar()}"
         else:
             return f"{self.get_name(nickname=nickname)}" \
-                   f"{' ' * (20 - len(f'{self.get_name(nickname=nickname)}lv.{self.lvl}'))}" \
+                   f"{' ' * (19 - len(f'{self.get_name(nickname=nickname)}lv.{self.lvl}'))}" \
                    f"lv.{self.lvl}\n" \
                    f"{self.generate_bar()}"
 
@@ -367,10 +368,11 @@ class Monster_Template:
         return self
 
     def get_damage(self, amount: float, true=False):
-        logging.info(f"{self.name} got damaged for {floor(amount)} (true={true})")
 
         if true:
             self.c_hp -= floor(amount)
+            self.death_check()
+            return f"получает {floor(amount)} чистого урона"
         else:
             if self.shield > 0:
                 self.shield -= floor(amount)
@@ -378,10 +380,18 @@ class Monster_Template:
                     amount = -self.shield
                     self.shield = 0
                     self.c_hp -= amount
+                    self.death_check()
+                    return f"теряет свой щит и получает {amount} урона"
+                elif self.shield == 0:
+                    self.death_check()
+                    return f"получает {floor(amount)} урона и теряет свой щит"
+                else:
+                    self.death_check()
+                    return f"получает {floor(amount)} урона по своему щиту"
             else:
                 self.c_hp -= floor(amount)
-
-        self.death_check()
+                self.death_check()
+                return f"получает {amount} урона"
 
     def death_check(self):
         if self.c_hp <= 0:
@@ -415,6 +425,10 @@ class Monster_Template:
             else:
                 out.append('None')
         return out
+
+    def catch(self):
+        success = self.catch_rate * (2 - self.c_hp / self.hp)
+        return choices([True, False], weights=[success, 1 - success], k=1)[0]
 
 
 # Spylit line
@@ -630,18 +644,20 @@ class Skill_Template:
 
     def use(self, owner: Monster_Template, target: Monster_Template):
         if choices([True, False], weights=[self.c_accuracy, 100 - self.c_accuracy], k=1)[0]:
-            logging.info(f"{owner.name} uses {self.name} ({self.c_accuracy})")
-
             if self.stat == "atk":
                 atk = owner.c_atk
             else:
                 atk = owner.c_satk
 
             self.c_accuracy -= self.accuracy
-            target.get_damage(self.power / 100 * atk *
-                              type_dict[self.type][target.type_1] * type_dict[self.type][target.type_2])
+            call_back = target.get_damage(self.power / 100 * atk *
+                                          type_dict[self.type][target.type_1] *
+                                          type_dict[self.type][target.type_2])
+
+            return logging.info(f"{owner.name} использует {self.name} с шансом {self.c_accuracy}%\n"
+                                f"И {target.name} {call_back}")
         else:
-            logging.info(f"{owner.name} tried to use {self.name}, but failed with chance {self.c_accuracy}%")
+            return f"{owner.name} попытался использовать {self.name}, но промахнулся с шансом {self.c_accuracy}%"
 
 
 class Slash(Skill_Template):
@@ -657,14 +673,15 @@ class Screech(Skill_Template):
 
     def use(self, owner: Monster_Template, target: Monster_Template):
         if choices([True, False], weights=[self.c_accuracy, 100 - self.c_accuracy], k=1)[0]:
-            logging.info(f"{owner.name} uses {self.name} ({self.c_accuracy})")
-
             target.atk_m = target.atk_m * 0.8
             target.satk_m = target.satk_m * 0.8
 
             self.c_accuracy -= self.accuracy
+
+            return logging.info(f"{owner.name} использует {self.name} с шансом {self.c_accuracy}%\n"
+                                f"И {target.name} теряет 20% от текущих атакующих показателей")
         else:
-            logging.info(f"{owner.name} tried to use {self.name}, but failed with chance {self.c_accuracy}%")
+            return f"{owner.name} попытался использовать {self.name}, но промахнулся с шансом {self.c_accuracy}%"
 
 
 class Gods_will(Skill_Template):
@@ -706,11 +723,11 @@ class Battle:
         self.red_active = red_team[0]
         self.red_last = ''
 
-    def print(self, reverse=False):
+    def print(self, reverse=False) -> str:
         if reverse:
-            return f"{self.blue_active.battle_stats()}\n\n{self.red_active.battle_stats()}"
+            return f"<code>{self.blue_active.battle_stats()}\n\n{self.red_active.battle_stats()}</code>"
         else:
-            return f"{self.red_active.battle_stats()}\n\n{self.blue_active.battle_stats()}"
+            return f"<code>{self.red_active.battle_stats()}\n\n{self.blue_active.battle_stats()}</code>"
 
     def change(self, player, new):
         if player == 0:
