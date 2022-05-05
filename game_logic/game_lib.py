@@ -655,8 +655,8 @@ class Skill_Template:
                                           type_dict[self.type][target.type_1] *
                                           type_dict[self.type][target.type_2])
 
-            return logging.info(f"{owner.name} использует {self.name} с шансом {self.c_accuracy}%\n"
-                                f"И {target.name} {call_back}")
+            return f"{owner.name} использует {self.name} с шансом {self.c_accuracy}%\n"\
+                   f"И {target.name} {call_back}"
         else:
             return f"{owner.name} попытался использовать {self.name}, но промахнулся с шансом {self.c_accuracy}%"
 
@@ -679,8 +679,9 @@ class Screech(Skill_Template):
 
             self.c_accuracy -= self.accuracy
 
-            return logging.info(f"{owner.name} использует {self.name} с шансом {self.c_accuracy}%\n"
-                                f"И {target.name} теряет 20% от текущих атакующих показателей")
+            return f"{owner.name} использует {self.name} с шансом {self.c_accuracy}%\n"\
+                   f"И {target.name} теряет 20% от текущих атакующих показателей\n"\
+                   f"атака = {target.atk_m * 100:.1f}%; спецатака = {target.satk_m * 100:.1f}%"
         else:
             return f"{owner.name} попытался использовать {self.name}, но промахнулся с шансом {self.c_accuracy}%"
 
@@ -753,16 +754,18 @@ class Battle:
             for skill in self.red_active.skills:
                 if skill is not None:
                     skill.c_accuracy = 100
-        self.red_active.skills[schoice].use(self.red_active, self.blue_active)
+        callback = self.red_active.skills[schoice].use(self.red_active, self.blue_active)
         self.red_last = self.red_active.skills[schoice].name
+        return callback
 
     def blue_turn(self, schoice):
         if self.blue_active.skills[schoice].name != self.blue_last:
             for skill in self.blue_active.skills:
                 if skill is not None:
                     skill.c_accuracy = 100
-        self.blue_active.skills[schoice].use(self.blue_active, self.red_active)
+        callback = self.blue_active.skills[schoice].use(self.blue_active, self.red_active)
         self.blue_last = self.blue_active.skills[schoice].name
+        return callback
 
     def battle(self):
         while all(map(lambda x: x.alive, self.blue_team)) and \
@@ -806,4 +809,3 @@ if __name__ == "__main__":
     dummy.generate_skills()
 
     battle = Battle(None, [test], None, [dummy])
-    battle.start()
