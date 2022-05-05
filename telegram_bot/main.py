@@ -93,6 +93,14 @@ def check_query(update: Update, context: CallbackContext) -> None:
         finishing_PvP(update, context, is_extra=True, room=None)
     elif query.data == 'exit_pve':
         finishing_PVE(update, context, id, extra=True)
+    elif query.data == 'choose_fst_monster':
+        choose_fst_monster(update, context)
+    elif query.data == 'propose_spylit':
+        show_spylit_information(update, context)
+    elif query.data == 'propose_ice':
+        show_ice_information(update, context)
+    elif query.data == 'propose_grass':
+        show_grass_information(update, context)
     elif query.data == 'spylit':
         monster_class = Spylit(lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
         monster_class.generate_skills()
@@ -218,6 +226,7 @@ def pars_team(team):
         exec(f'new_team.append({data[1]}(lvl={data[2]}, exp={data[3]}, shiny={data[4]}))')
         new_team[-1].deconvert_skills(data[5])
     return new_team
+
 
 
 # Пример функционала игры

@@ -42,7 +42,6 @@ class User:
             self.cursor.execute(req, (id, name, level, exp, shiny, skills))
             self.connection.commit()
         except Exception as ex:
-            print(1)
             print(ex)
 
     def add_user(self, id, username, game_name, team):
