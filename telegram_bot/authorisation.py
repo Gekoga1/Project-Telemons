@@ -1,7 +1,7 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext
 
-from configure.configuraion import database_manager
+from configure.configuration import database_manager
 from configure.monsters_information import spylit, ice, grass
 
 

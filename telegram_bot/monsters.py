@@ -1,7 +1,7 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext
 
-from configure.configuraion import database_manager, MONSTER_NUM, NOTHING, ABILITY_NUM, TEAM_NUM, COLLECTION_NUM, \
+from configure.configuration import database_manager, MONSTER_NUM, NOTHING, ABILITY_NUM, TEAM_NUM, COLLECTION_NUM, \
     COLLECTION_TEAM, DELETE_FROM_TEAM, SKILL_CHANGE, EVOLUTION
 from main import main_menu
 from game_logic.game_lib import Spylit, Spylish, Ailox, Ailoprex, Wulvit, Wullies, Spyland, Ailopix, Wulkiss
@@ -658,7 +658,6 @@ def change_monsters_exp(update: Update, context: CallbackContext, add_exp, user_
 
 def check_new_lvl(update: Update, context: CallbackContext, monster_id):
     monster_info = database_manager.get_monster_info(monster_id)
-    # print(type())
     lvl = monster_info[2]
     exp = monster_info[3]
     if exp >= 100:

@@ -3,7 +3,7 @@ import random
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext
 
-from configure.configuraion import rooms, teams
+from configure.configuration import rooms, teams
 from creating_rooms.Room import Room, Stage
 from game_logic.game_lib import *
 from monsters import change_monsters_exp, change_collection

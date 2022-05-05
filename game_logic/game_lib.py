@@ -3,7 +3,7 @@ import sqlite3
 from math import floor, ceil
 from random import choices, choice, randint
 from typing import Union, List
-from configure.configuraion import database_manager
+from configure.configuration import database_manager
 
 logging.basicConfig(
     filename='game-lib.log',

@@ -2,7 +2,7 @@ import logging
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 
-from configure.configuraion import MONSTER_NUM, ABILITY_NUM, NOTHING, TEAM_NUM, COLLECTION_NUM, NICKNAME, \
+from configure.configuration import MONSTER_NUM, ABILITY_NUM, NOTHING, TEAM_NUM, COLLECTION_NUM, NICKNAME, \
     COLLECTION_TEAM, DELETE_FROM_TEAM, SKILL_CHANGE, EVOLUTION
 from authorisation import *
 from configure.secrets import API_TOKEN
