@@ -198,3 +198,13 @@ class User:
         req = """SELECT info FROM Skills WHERE name = ?"""
         res = self.cursor.execute(req, (skill, )).fetchone()
         return ''.join(res)
+
+    def change_monster_lvl(self, monster_id, level):
+        req = """UPDATE users_monsters SET level = ? WHERE id = ?"""
+        self.cursor.execute(req, (level, monster_id,))
+        self.connection.commit()
+
+    def change_monster_skills(self, monster_id, new_skills):
+        req = """UPDATE users_monsters SET skills = ? WHERE id = ?"""
+        self.cursor.execute(req, (new_skills, monster_id,))
+        self.connection.commit()

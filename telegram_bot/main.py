@@ -81,6 +81,8 @@ def check_query(update: Update, context: CallbackContext) -> None:
         write_team_num(update, context)
     elif query.data == 'change monster':
         show_team_for_change(update, context)
+    elif query.data == 'learn_skills':
+        ask_skill_num(update, context)
     elif query.data == 'monster info':
         monster_info(update, context)
     elif query.data == 'main menu':
@@ -113,8 +115,6 @@ def check_query(update: Update, context: CallbackContext) -> None:
         evolution(update, context)
     elif context.chat_data['waiting_for'] == DELETE_FROM_TEAM:
         select_monster_for_delete(update, context)
-    elif query.data == 'learn_skills':
-        learn_skills(update, context)
     elif context.chat_data['waiting_for'] == SKILL_CHANGE:
         select_skill_for_change(update, context)
     else:
@@ -129,7 +129,7 @@ def process_message(update: Update, context: CallbackContext):  # обработ
     elif context.chat_data['waiting_for'] == COLLECTION_TEAM:
         get_collection_team_num(update, context)
     elif context.chat_data['waiting_for'] == ABILITY_NUM:
-        get_ability_num(update, context)
+        get_skill_num(update, context)
     elif context.chat_data['waiting_for'] == TEAM_NUM:
         get_team_num(update, context)
     elif context.chat_data['waiting_for'] == NOTHING:
@@ -225,6 +225,10 @@ def show_game_example(update: Update, context: CallbackContext):
     pass
 
 
+def test(update: Updater, context: CallbackContext):
+    change_monsters_exp(update, context, 70)
+
+
 # Начальная функция. Проверяет есть ли аккаунт или нет, регистрация
 def start(update: Update, context: CallbackContext) -> None:
     id = update.effective_user.id
@@ -266,6 +270,7 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("game_settings", game_settings))
     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, process_message))
     dispatcher.add_handler(CommandHandler("main_menu", main_menu))
+    dispatcher.add_handler(CommandHandler("test", test))
     updater.dispatcher.add_handler(CallbackQueryHandler(check_query))
 
     updater.start_polling()

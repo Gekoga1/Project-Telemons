@@ -122,6 +122,7 @@ def evolution(update: Update, context: CallbackContext):  # эволюция м�
             update.effective_user.send_message('У вас маленький уровень, играйте бои, чтобы поднять свой уровень')
         elif all_info[3] >= 100 and all_info[2] >= int(list(monster.evolution_rule.keys())[0]):
             new_monster = monster.get_exp(0)
+            context.chat_data['monster_id'] = all_info[0]
             new_name = 'Spylish'
             new_lvl = new_monster.lvl
             new_exp = new_monster.exp
@@ -129,6 +130,7 @@ def evolution(update: Update, context: CallbackContext):  # эволюция м�
             try:
                 database_manager.change_monster_params(new_name, new_lvl, new_exp, new_skills, need_monster)
                 update.effective_user.send_message('Эволюция прошла успешно!')
+                show_possible_skills(update, context, monster)
             except Exception as ex:
                 print(ex)
                 update.effective_user.send_message('Произошла ошибка, повторите попытку эволюции позже')
@@ -141,6 +143,7 @@ def evolution(update: Update, context: CallbackContext):  # эволюция м�
             update.effective_user.send_message('У вас маленький уровень, играйте бои, чтобы поднять свой уровень')
         elif all_info[3] >= 100 and all_info[2] >= int(list(monster.evolution_rule.keys())[0]):
             new_monster = monster.get_exp(0)
+            context.chat_data['monster_id'] = all_info[0]
             new_name = 'Spyland'
             new_lvl = new_monster.lvl
             new_exp = new_monster.exp
@@ -148,6 +151,7 @@ def evolution(update: Update, context: CallbackContext):  # эволюция м�
             try:
                 database_manager.change_monster_params(new_name, new_lvl, new_exp, new_skills, need_monster)
                 update.effective_user.send_message('Эволюция прошла успешно!')
+                show_possible_skills(update, context, monster)
             except Exception as ex:
                 print(ex)
                 update.effective_user.send_message('Произошла ошибка, повторите попытку эволюции позже')
@@ -162,6 +166,7 @@ def evolution(update: Update, context: CallbackContext):  # эволюция м�
             update.effective_user.send_message('У вас маленький уровень, играйте бои, чтобы поднять свой уровень')
         elif all_info[3] >= 100 and all_info[2] >= int(list(monster.evolution_rule.keys())[0]):
             new_monster = monster.get_exp(0)
+            context.chat_data['monster_id'] = all_info[0]
             new_name = 'Ailoprex'
             new_lvl = new_monster.lvl
             new_exp = new_monster.exp
@@ -169,6 +174,7 @@ def evolution(update: Update, context: CallbackContext):  # эволюция м�
             try:
                 database_manager.change_monster_params(new_name, new_lvl, new_exp, new_skills, need_monster)
                 update.effective_user.send_message('Эволюция прошла успешно!')
+                show_possible_skills(update, context, monster)
             except Exception as ex:
                 print(ex)
                 update.effective_user.send_message('Произошла ошибка, повторите попытку эволюции позже')
@@ -182,6 +188,7 @@ def evolution(update: Update, context: CallbackContext):  # эволюция м�
             update.effective_user.send_message('У вас маленький уровень, играйте бои, чтобы поднять свой уровень')
         elif all_info[3] >= 100 and all_info[2] >= int(list(monster.evolution_rule.keys())[0]):
             new_monster = monster.get_exp(0)
+            context.chat_data['monster_id'] = all_info[0]
             new_name = 'Ailopix'
             new_lvl = new_monster.lvl
             new_exp = new_monster.exp
@@ -189,6 +196,7 @@ def evolution(update: Update, context: CallbackContext):  # эволюция м�
             try:
                 database_manager.change_monster_params(new_name, new_lvl, new_exp, new_skills, need_monster)
                 update.effective_user.send_message('Эволюция прошла успешно!')
+                show_possible_skills(update, context, monster)
             except Exception as ex:
                 print(ex)
                 update.effective_user.send_message('Произошла ошибка, повторите попытку эволюции позже')
@@ -201,6 +209,7 @@ def evolution(update: Update, context: CallbackContext):  # эволюция м�
         elif all_info[2] < int(list(monster.evolution_rule.keys())[0]):
             update.effective_user.send_message('У вас маленький уровень, играйте бои, чтобы поднять свой уровень')
         elif all_info[3] >= 100 and all_info[2] >= int(list(monster.evolution_rule.keys())[0]):
+            context.chat_data['monster_id'] = all_info[0]
             new_monster = monster.get_exp(0)
             new_name = 'Wullies'
             new_lvl = new_monster.lvl
@@ -209,6 +218,7 @@ def evolution(update: Update, context: CallbackContext):  # эволюция м�
             try:
                 database_manager.change_monster_params(new_name, new_lvl, new_exp, new_skills, need_monster)
                 update.effective_user.send_message('Эволюция прошла успешно!')
+                show_possible_skills(update, context, monster)
             except Exception as ex:
                 print(ex)
                 update.effective_user.send_message('Произошла ошибка, повторите попытку эволюции позже')
@@ -222,6 +232,7 @@ def evolution(update: Update, context: CallbackContext):  # эволюция м�
             update.effective_user.send_message('У вас маленький уровень, играйте бои, чтобы поднять свой уровень')
         elif all_info[3] >= 100 and all_info[2] >= int(list(monster.evolution_rule.keys())[0]):
             new_monster = monster.get_exp(0)
+            context.chat_data['monster_id'] = all_info[0]
             new_name = 'Wulkiss'
             new_lvl = new_monster.lvl
             new_exp = new_monster.exp
@@ -229,6 +240,7 @@ def evolution(update: Update, context: CallbackContext):  # эволюция м�
             try:
                 database_manager.change_monster_params(new_name, new_lvl, new_exp, new_skills, need_monster)
                 update.effective_user.send_message('Эволюция прошла успешно!')
+                show_possible_skills(update, context, monster)
             except Exception as ex:
                 print(ex)
                 update.effective_user.send_message('Произошла ошибка, повторите попытку эволюции позже')
@@ -237,11 +249,12 @@ def evolution(update: Update, context: CallbackContext):  # эволюция м�
 
 
 def show_possible_skills(update: Update, context: CallbackContext, monster):
-    all_skills = monster.skills_rule()  # !!! ВКЛЮЧИ ФУНКЦИЮ В ЭВОЛЮЦИЮ !!!
+    all_skills = monster.skills_rule
+    print(monster.skills)
     possible_skills = []
-    for key, val in all_skills:
-        if monster.lvl >= int(key) and val not in monster.skills:
-            possible_skills.append(val)
+    for key, val in all_skills.items():
+        if monster.lvl >= int(key) and val.name not in monster.skills:
+            possible_skills.append(val.name)
 
     context.chat_data['skills'] = possible_skills
     text = 'Монстр может выучить следующие навыки:\n\n'
@@ -259,8 +272,10 @@ def show_possible_skills(update: Update, context: CallbackContext, monster):
 
 
 def ask_skill_num(update: Update, context: CallbackContext):
+    print('ask')
     context.chat_data['waiting_for'] = ABILITY_NUM
     update.effective_user.send_message('Введите номер способности, которую хотите добавить')
+    get_skill_num(update, context)
 
 
 def get_skill_num(update: Update, context: CallbackContext):
@@ -282,6 +297,8 @@ def learn_skills(update: Update, context: CallbackContext):
     monster = context.chat_data['monster_class']
     skills = context.chat_data['skills']
     skill_num = context.chat_data['skill_num']
+    monster_id = context.chat_data['monster_id']
+    print(skill_num)
     if len(monster.skills) == 4:
         context.chat_data['waiting_for'] = SKILL_CHANGE
         keyboard = InlineKeyboardMarkup([
@@ -297,7 +314,12 @@ def learn_skills(update: Update, context: CallbackContext):
         ])
         update.effective_user.send_message('У вас уже 4 навыка, какой хотите заменить?', reply_markup=keyboard)
     else:
-        monster.skills.append(skills[skill_num])
+        monster.skills.append(skills[skill_num - 1])
+        new_skills = ';'.join(monster.skills)
+        database_manager.change_monster_skills(monster_id, new_skills)
+        update.effective_user.send_message(f'Ваш монстр успешно выучил новое умение!\n'
+                                           f'Способности вашего монстра: {new_skills}')
+        print(monster.skills)
 
 
 def select_skill_for_change(update: Update, context: CallbackContext):
@@ -580,12 +602,15 @@ def add_new_monster(update: Update, context: CallbackContext, monster_class):  #
         return False
 
 
-def change_monsters_exp(update: Update, context: CallbackContext, add_exp, user_id):  # изменение опыта монстра
+def change_monsters_exp(update: Update, context: CallbackContext, add_exp):  # изменение опыта монстра
+    user_id = update.effective_user.id
     try:
         monsters_id = database_manager.get_team(user_id).split(';')
+        print(monsters_id)
         for i in monsters_id:
             new_exp = int(database_manager.get_monster_exp(int(i))) + int(add_exp)
             database_manager.change_monster_exp(new_exp, int(i))
+            print('almost')
             check_new_lvl(update, context, int(i))
     except Exception as ex:
         print(ex)
@@ -622,6 +647,7 @@ def check_new_lvl(update: Update, context: CallbackContext, monster_id):
                 f' Вашему монстру теперь также доступна эволюция')
             evolution(update, context)
         else:
+            database_manager.change_monster_lvl(monster_info[0], monster.lvl)
             update.effective_user.send_message(
                 f'Уровень Вашего монстра {monster.__class__.__name__} повысился: {monster.lvl}')
     else:
