@@ -170,6 +170,7 @@ def main_menu(update: Update, context: CallbackContext):  # главное ме�
                 update.message.reply_text('Вы не авторизованы, чтобы играть нужно авторизоваться.')
     except Exception as exception:
         if get_authorised(update=update, context=context):
+            print('before')
             teams[id] = pars_team(database_manager.get_team(user_id=id))
             reply_markup = InlineKeyboardMarkup([
                 [

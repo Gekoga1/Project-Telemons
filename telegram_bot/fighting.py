@@ -278,8 +278,10 @@ def main_fight(update: Update, context: CallbackContext, text) -> None:
 
 def propose_change_monster(update: Update, context: CallbackContext, monster, player_move, room):
     buttons = []
+    print('propose')
     if player_move == 'blue':
         context.bot_data[room.blue_player]['stage'] = Stage.CHANGE_MONSTER
+        print(room.room_battle.blue_team)
         for member in room.room_battle.blue_team:
             if member != monster:
                 buttons.append(InlineKeyboardButton(member, callback_data=member))
@@ -305,7 +307,7 @@ def change_monster(update: Update, context: CallbackContext, monster, player_tea
 
 def finishing_PvP(update: Update, context: CallbackContext, room, is_extra=False) -> None:
     if is_extra is not True:
-        change_monsters_exp(update, context, 100, room.winner)
+        change_monsters_exp(update, context, 100, user_id=room.winner)
         for user_id in room.player_list:
             try:
                 context.bot_data[user_id]['stage'] = Stage.LOBBY
@@ -403,7 +405,7 @@ def continue_fighting_PVE(update: Update, context: CallbackContext, text, id):
 
 def finishing_PVE(update, context, id, extra=False):
     if not extra:
-        change_monsters_exp(update, context, 100, id)
+        change_monsters_exp(update, context, 100)
         context.bot_data[id]['stage'] = Stage.LOBBY
         del context.bot_data[id]['pve']
         context.bot.send_message(chat_id=id,
