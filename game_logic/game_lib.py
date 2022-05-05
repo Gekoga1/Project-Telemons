@@ -180,8 +180,9 @@ class Monster_Template:
         self.hp_m, self.atk_m, self.satk_m, self.speed_m = 1, 1, 1, 1
         self.shield = 0
         self.alive = True
-
         self.statuses = []
+
+        self.img_path = f'../resources/monster_images/{self.__class__.__name__}.png'
 
     def __copy__(self):
         return self.__class__(uid=self.uid, lvl=self.lvl, exp=self.exp,
@@ -798,7 +799,7 @@ class Battle:
 
 
 if __name__ == "__main__":
-    test = Spylit(shiny=True, lvl=20)
+    test = Ailox(shiny=True, lvl=20)
     test.generate_skills()
 
     dummy = Spyland(lvl=15)
