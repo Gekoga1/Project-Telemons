@@ -28,6 +28,7 @@ def get_authorised(update: Update, context: CallbackContext):
 def check_query(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     id = update.effective_user.id
+    print(teams[id])
     query.answer()
     if query.data == 'registration_yes':
         nickname_or_tgname(update, context)
@@ -62,7 +63,12 @@ def check_query(update: Update, context: CallbackContext) -> None:
         # нажата кнопка создать комнату
     elif query.data == 'create_room':
         create_room(update, context)
-    elif query.data.split(' ')[0] in ['Атака', 'Смена'] and context.bot_data[id]['stage'] == Stage.PLAY_PVE:
+    if query.data in ['Wolvit', 'Wullies'] and context.bot_data[id]['stage'] == Stage.CHANGE_MONSTER:
+        try:
+            change_monster_fight(update, context, monster=query.data, player_team=id)
+        except Exception as exception:
+            print(exception)
+    elif query.data.split(' ')[0] in ['Атака', 'Смена', 'Поймать'] and context.bot_data[id]['stage'] == Stage.PLAY_PVE:
         continue_fighting_PVE(update, context, text=query.data, id=id)
     elif query.data.split(' ')[0] in ['Атака', 'Смена']:
         main_fight(update=update, context=context, text=query.data)
