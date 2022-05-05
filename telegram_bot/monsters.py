@@ -372,7 +372,8 @@ def show_abilities(update: Update, context: CallbackContext):  # показыв�
     else:
         text = f'Способности монстра {monster_name}: \n\n'
     for i in range(len(abilities)):
-        text += f'{i + 1}) {abilities[i]}: {info[i].lower()}\n'
+        if abilities[i] is not None:
+            text += f'{i + 1}) {abilities[i].name}: {info[i].lower()}\n'
     update.effective_user.send_message(text)
 
 
@@ -381,7 +382,6 @@ def get_abilities(update: Update, context: CallbackContext):  # получени
     monster_num = context.chat_data['monster_num']
     need_id = collection[monster_num - 1][0]
     monster = create_monster_class(update, context, need_id)
-    print('after monster')
     monster.deconvert_skills(collection[monster_num - 1][-1])
     abilities = monster.skills
     print(abilities)
@@ -395,7 +395,6 @@ def get_abilities(update: Update, context: CallbackContext):  # получени
 
 def create_monster_class(update: Update, context: CallbackContext, monster_id):
     monster_info = database_manager.get_monster_info(monster_id)
-    print(monster_info[1])
     if monster_info[1] == 'Spylit':
         monster = Spylit(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4], skills=monster_info[-1].split(';'))
     elif monster_info[1] == 'Spylish':
@@ -415,7 +414,7 @@ def create_monster_class(update: Update, context: CallbackContext, monster_id):
     elif monster_info[1] == 'Wulkiss':
         monster = Wulkiss(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4], skills=monster_info[-1].split(';'))
     else:
-        print('error')
+        update.effective_user.send_message('Произошла ошибка, попробуйте ещё раз позже')
         return
     return monster
 
