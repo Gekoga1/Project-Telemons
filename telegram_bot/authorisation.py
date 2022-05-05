@@ -2,6 +2,9 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext
 
 from configure.configuraion import database_manager
+from configure.monsters_information import spylit, ice, grass
+
+
 # from monsters import check_add_monster, change_team, change_collection
 
 
@@ -20,16 +23,55 @@ def name_from_telegram(update: Update, context: CallbackContext):  # имя из
 def choose_fst_monster(update: Update, context: CallbackContext):  # выбор стартового монстра
     ques = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton('Каменный паук', callback_data='spylit'),
+            InlineKeyboardButton('Каменный паук', callback_data='propose_spylit'),
         ],
         [
-            InlineKeyboardButton('Ледяной лис', callback_data='ice')
+            InlineKeyboardButton('Ледяной лис', callback_data='propose_ice')
         ],
         [
-            InlineKeyboardButton('Травяной', callback_data='grass')
+            InlineKeyboardButton('Травяной', callback_data='propose_grass')
         ]
     ])
     update.effective_user.send_message(text='Выберите своего первого монстра', reply_markup=ques)
+
+
+def show_spylit_information(update: Update, context: CallbackContext):
+    ques = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton('Выбрать Каменного паука', callback_data='spylit'),
+        ],
+        [
+            InlineKeyboardButton('Вернуться к выбору', callback_data='choose_fst_monster')
+        ]
+    ])
+    photo = open('../data/img/spylit.png', 'rb')
+    update.effective_user.send_photo(photo=photo, caption=spylit, reply_markup=ques)
+
+
+def show_ice_information(update: Update, context: CallbackContext):
+    ques = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton('Выбрать Ailox', callback_data='ice'),
+        ],
+        [
+            InlineKeyboardButton('Вернуться к выбору', callback_data='choose_fst_monster')
+        ]
+    ])
+    photo = open('../data/img/Ailox.png', 'rb')
+    update.effective_user.send_photo(photo=photo, caption=ice, reply_markup=ques)
+
+
+def show_grass_information(update: Update, context: CallbackContext):
+    ques = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton('Выбрать Wulvit', callback_data='grass'),
+        ],
+        [
+            InlineKeyboardButton('Вернуться к выбору', callback_data='choose_fst_monster')
+        ]
+    ])
+    photo = open('../data/img/Ailox.png')
+    update.effective_user.send_photo(photo=photo, caption=grass, reply_markup=ques)
 
 
 def create_fst_team(update: Update, context: CallbackContext, team):  # добавление стартового монстра в команду
@@ -46,7 +88,6 @@ def create_fst_collection(update: Update, context: CallbackContext, collection):
 def registration(update: Update, context: CallbackContext, monster_class): # завершение регистрации
     try:
         user_id = update.effective_user.id
-        print('reg')
         name = context.chat_data['name']
         monsters_ids = database_manager.get_monsters_ids()
         if len(monsters_ids) == 0:
@@ -55,7 +96,6 @@ def registration(update: Update, context: CallbackContext, monster_class): # з�
         else:
             monster_id = int(monsters_ids[-1][0]) + 1
             team = f'{str(monster_id)}'
-            print('else')
         database_manager.add_monster(id=monster_id, name=monster_class.__class__.__name__,
                                      level=monster_class.lvl, exp=monster_class.exp, shiny=monster_class.shiny,
                                      skills=monster_class.convert_skills())
@@ -65,7 +105,6 @@ def registration(update: Update, context: CallbackContext, monster_class): # з�
                                        f"Вы всегда можете его изменить, вызвав команду /game_settings\n\n"
                                        f"Чтобы выйти в главное меню, введите команду /main_menu")
     except Exception as ex:
-        print('ex')
         print(ex)
         update.effective_user.send_message('Произошла ошибка при регистрации, попробуйте ещё раз')
 
