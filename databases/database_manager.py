@@ -36,13 +36,12 @@ class User:
         except Exception as exception:
             print(exception)
 
-    def add_monster(self, id, uid, name, level, exp, shiny):
+    def add_monster(self, id, name, level, exp, shiny, skills):
         try:
             req = """INSERT INTO users_monsters VALUES (?, ?, ?, ?, ?, ?)"""
-            self.cursor.execute(req, (id, uid, name, level, exp, shiny))
+            self.cursor.execute(req, (id, name, level, exp, shiny, skills))
             self.connection.commit()
         except Exception as ex:
-            print(1)
             print(ex)
 
     def add_user(self, id, username, game_name, team):
@@ -165,7 +164,7 @@ class User:
         return ''.join(res)
 
     def get_monster_info(self, monster_id):
-        req = """SELECT id, name, level, exp, shiny, skills FROM users_monsters WHERE id = ?"""
+        req = """SELECT * FROM users_monsters WHERE id = ?"""
         res = self.cursor.execute(req, (monster_id,)).fetchone()
         return res
 

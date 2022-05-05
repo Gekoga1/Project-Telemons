@@ -100,7 +100,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data == 'propose_grass':
         show_grass_information(update, context)
     elif query.data == 'spylit':
-        monster_class = Monster_Template(uid=1, lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
+        monster_class = Spylit(lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
         monster_class.generate_skills()
         registration(update, context, monster_class)
     elif query.data == 'ice':
@@ -218,11 +218,7 @@ def pars_team(team):
         try:
             for uid in team.split(';'):
                 data = database_manager.get_monster_info(uid)
-                if data[4] == 0:
-                    check_shiny = False
-                else:
-                    check_shiny = True
-                exec(f'new_team.append({data[1]}(lvl={data[2]}, exp={data[3]}, shiny={check_shiny}))')
+                exec(f'new_team.append({data[1]}(lvl={data[2]}, exp={data[3]}, shiny={data[4]}))')
                 new_team[-1].deconvert_skills(data[5])
             return new_team
         except Exception as exception:

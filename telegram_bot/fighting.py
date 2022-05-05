@@ -335,7 +335,7 @@ def finishing_PvP(update: Update, context: CallbackContext, room, is_extra=False
 
 
 def fighting_PVE(update: Update, context: CallbackContext):
-    dummy = random.choice([Spyland(lvl=5)])
+    dummy = random.choice([Spyland(lvl=5), Ailox(lvl=5), Wulvit(lvl=5)])
     dummy.generate_skills()
 
     id = update.effective_user.id
