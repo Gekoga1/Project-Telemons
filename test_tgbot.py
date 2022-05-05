@@ -68,6 +68,20 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data in rooms.keys():
         select_room(update, context)
         context.chat_data['stage'] = Stage.PLAYING_GAME
+    elif query.data == 'monsters':
+        team_or_collection(update, context)
+    elif query.data == 'collection':
+        collection_info(update, context)
+    elif query.data == 'team':
+        team_info(update, context)
+    elif query.data == 'change team':
+        pass
+    elif query.data == 'no':
+        main_menu(update, context)
+    elif query.data == 'change monster':
+        pass
+    elif query.data == 'monster info':
+        pass
     else:
         update.message.reply_text('Я вас не понимаю, повторите попытку ввода.')
 
@@ -220,7 +234,7 @@ def main_menu(update: Update, context: CallbackContext):
         reply_markup = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton("Выбор боёв", callback_data='choose_type_fight'),
-                InlineKeyboardButton("Редактирование команды", callback_data='customize_team'),
+                InlineKeyboardButton("Просмотр монстров", callback_data='monsters'),
             ],
             [
                 InlineKeyboardButton('Настройки игры', callback_data='game_settings')
@@ -231,6 +245,63 @@ def main_menu(update: Update, context: CallbackContext):
                                   f'Чем хотите заняться?', reply_markup=reply_markup)
     else:
         update.message.reply_text('Вы не авторизованы, чтобы играть нужно авторизоваться.')
+
+
+def team_or_collection(update: Update, context: CallbackContext):
+    query = update.callback_query
+    ques = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton('Просмотр коллекции', callback_data='collection'),
+            InlineKeyboardButton('Просмотр команды', callback_data='team')
+        ]
+    ])
+    query.edit_message_text('Что Вы хотите сделать?', reply_markup=ques)
+
+
+def collection_info(update: Update, context: CallbackContext):
+    query = update.callback_query
+    query.edit_message_text('Здесь выводится вся коллекция монстров игрока')
+    # update.message.reply_text('Здесь выводится вся коллекция монстров игрока')
+    try:
+        monster_num = get_monster_num(update, context)
+        # query.edit_message_text('Print num')
+        ques = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton('Заменить монстра', callback_data='change monster'),
+                InlineKeyboardButton('Посмотреть характеристики', callback_data='monster info')
+            ]
+        ])
+        update.message.reply_text(f'Вы выбрали монстра под номером {str(monster_num)}\n'
+                                  f'Что Вы хотите сделать?', reply_markup=ques)
+    except Exception as ex:
+        print(ex)
+        update.message.reply_text('Вы ввели не число, попробуйте ещё раз')
+
+
+def get_monster_num(update: Update, context: CallbackContext):
+    update.message.reply_text('Введите номер монстра')
+    monster_num = update.message.text
+    return monster_num
+
+
+def team_info(update: Update, context: CallbackContext):
+    update.message.reply_text('Здесь выводятся все монстры команды и их характеристики')
+    change_ques = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton('Да', callback_data='change team'),
+            InlineKeyboardButton('Нет', callback_data='no')
+        ]
+    ])
+    update.message.reply_text('Вы хотите изменить команду?', reply_markup=change_ques)
+
+
+def change_team(update: Update, context: CallbackContext):
+    try:
+        monster_num = get_monster_num(update, context)
+        update.message.reply_text(f'Вы выбрали монстра под номером {str(monster_num)}')
+    except Exception as ex:
+        print(ex)
+        update.message.reply_text('Вы ввели не число, попробуйте ещё раз')
 
 
 # def process_message(update: Update, context: CallbackContext):
@@ -325,11 +396,6 @@ def profile(update: Update, context: CallbackContext):
     if get_authorised(update=update, context=context):
         update.message.reply_text(f'id: {id}\n'
                                   f'username: {database_manager.get_gamename(id)}')
-    # if is_authorised:
-    #     update.message.reply_text(f'id: {id}\n'
-    #                               f'username: {username}')
-    # else:
-    #     update.message.reply_text('Вы не авторизованы')
 
 
 # Пример функционала игры
@@ -400,6 +466,7 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("game_settings", game_settings))
     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, process_message))
     dispatcher.add_handler(CommandHandler("main_menu", main_menu))
+    dispatcher.add_handler(MessageHandler(Filters.text, get_monster_num))
     updater.dispatcher.add_handler(CallbackQueryHandler(check_query))
 
     updater.start_polling()
