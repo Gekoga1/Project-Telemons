@@ -3,7 +3,7 @@ import logging
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 
 from configure.configuraion import MONSTER_NUM, ABILITY_NUM, NOTHING, TEAM_NUM, COLLECTION_NUM, NICKNAME, \
-    COLLECTION_TEAM, DELETE_FROM_TEAM, SKILL_CHANGE
+    COLLECTION_TEAM, DELETE_FROM_TEAM, SKILL_CHANGE, EVOLUTION
 from authorisation import *
 from configure.secrets import API_TOKEN
 from fighting import *
@@ -125,6 +125,8 @@ def check_query(update: Update, context: CallbackContext) -> None:
         select_monster_for_delete(update, context)
     elif context.chat_data['waiting_for'] == SKILL_CHANGE:
         select_skill_for_change(update, context)
+    elif context.chat_data['waiting_for'] == EVOLUTION:
+        select_monster_evolution(update, context)
     else:
         query.edit_message_text('Я вас не понимаю, повторите попытку ввода.')
 
@@ -170,7 +172,6 @@ def main_menu(update: Update, context: CallbackContext):  # главное ме�
                 update.message.reply_text('Вы не авторизованы, чтобы играть нужно авторизоваться.')
     except Exception as exception:
         if get_authorised(update=update, context=context):
-            print('before')
             teams[id] = pars_team(database_manager.get_team(user_id=id))
             reply_markup = InlineKeyboardMarkup([
                 [
@@ -229,14 +230,9 @@ def pars_team(team):
     return new_team
 
 
-
 # Пример функционала игры
 def show_game_example(update: Update, context: CallbackContext):
     pass
-
-
-def test(update: Updater, context: CallbackContext):
-    change_monsters_exp(update, context, 70)
 
 
 # Начальная функция. Проверяет есть ли аккаунт или нет, регистрация
@@ -280,7 +276,7 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("game_settings", game_settings))
     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, process_message))
     dispatcher.add_handler(CommandHandler("main_menu", main_menu))
-    dispatcher.add_handler(CommandHandler("test", test))
+    dispatcher.add_handler(CommandHandler("evolution", team_for_evolution))
     updater.dispatcher.add_handler(CallbackQueryHandler(check_query))
 
     updater.start_polling()
