@@ -384,7 +384,6 @@ def get_abilities(update: Update, context: CallbackContext):  # получени
     monster = create_monster_class(update, context, need_id)
     monster.deconvert_skills(collection[monster_num - 1][-1])
     abilities = monster.skills
-    print(abilities)
     all_info = []
     for skill in abilities:
         if skill is not None:
@@ -473,7 +472,6 @@ def show_team_for_delete(update: Update, context: CallbackContext):  # пока�
 def select_monster_for_delete(update: Update, context: CallbackContext):  # выбор монстра из Inline
     num = update.callback_query.data
     context.chat_data['delete_num'] = num
-    context.chat_data['waiting_for'] = NOTHING
     delete_from_team(update, context)
 
 
@@ -488,6 +486,7 @@ def delete_from_team(update: Update, context: CallbackContext):  # удален�
         new_collection = f'{collection};{team[delete_num]}'
     change_collection(update, context, new_collection)
     del team[delete_num]
+    context.chat_data['waiting_for'] = NOTHING
     change_team(update, context, ';'.join(team))
     team_info(update, context, only_show=True)
 

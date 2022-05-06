@@ -84,6 +84,8 @@ def check_query(update: Update, context: CallbackContext) -> None:
         collection_info(update, context)
     elif query.data == 'change team':
         write_team_num(update, context)
+    elif context.chat_data['waiting_for'] == DELETE_FROM_TEAM:
+        select_monster_for_delete(update, context)
     elif query.data == 'change monster':
         show_team_for_change(update, context)
     elif query.data == 'learn_skills':
@@ -126,8 +128,6 @@ def check_query(update: Update, context: CallbackContext) -> None:
         want_evolution(update, context)
     elif query.data == 'evolution':
         evolution(update, context)
-    elif context.chat_data['waiting_for'] == DELETE_FROM_TEAM:
-        select_monster_for_delete(update, context)
     elif context.chat_data['waiting_for'] == SKILL_CHANGE:
         select_skill_for_change(update, context)
     elif context.chat_data['waiting_for'] == EVOLUTION:
