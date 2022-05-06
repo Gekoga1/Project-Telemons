@@ -28,7 +28,6 @@ def get_authorised(update: Update, context: CallbackContext):
 def check_query(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     id = update.effective_user.id
-    print(teams[id])
     query.answer()
     if query.data == 'registration_yes':
         nickname_or_tgname(update, context)
@@ -63,7 +62,7 @@ def check_query(update: Update, context: CallbackContext) -> None:
         # нажата кнопка создать комнату
     elif query.data == 'create_room':
         create_room(update, context)
-    if query.data in ['Wolvit', 'Wullies'] and context.bot_data[id]['stage'] == Stage.CHANGE_MONSTER:
+    if query.data in ['Wulvit', 'Wullies'] and context.bot_data[id]['stage'] == Stage.CHANGE_MONSTER:
         try:
             change_monster_fight(update, context, monster=query.data, player_team=id)
         except Exception as exception:
@@ -193,6 +192,7 @@ def main_menu(update: Update, context: CallbackContext):  # главное ме�
                                                f'Чем хотите заняться?', reply_markup=reply_markup)
         else:
             update.message.reply_text('Вы не авторизованы, чтобы играть нужно авторизоваться.')
+
 
 
 def add_bot_data(update: Update, context: CallbackContext, id):
