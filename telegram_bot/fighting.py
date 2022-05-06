@@ -259,7 +259,7 @@ def propose_change_monster(update: Update, context: CallbackContext, monster, pl
         context.bot_data[room.red_player]['stage'] = Stage.CHANGE_MONSTER
         for member in room.room_battle.red_team:
             print(member)
-            if member.__class__.__name__ != monster:
+            if member.__class__.__name__ != monster.__class__.__name__:
                 buttons.append(InlineKeyboardButton(member.__class__.__name__, callback_data=member.__class__.__name__))
     keyboard = [buttons]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -273,16 +273,25 @@ def propose_change_monster(update: Update, context: CallbackContext, monster, pl
 def change_monster_fight(update: Update, context: CallbackContext, monster, player_team):
     room_name = context.chat_data['roomName']
     room = rooms[room_name]
+    context.bot_data[player_team]['stage'] = Stage.PLAY_GAME
     if player_team == room.blue_player:
         for team in room.room_battle.blue_team:
             if team.__class__.__name__ == monster:
-                room.room_battle.change(player=0, new=room.room_battle.blue_team.index(team))
+                monster_place = room.room_battle.blue_team.index(team)
+                del room.room_battle.blue_team[monster_place]
+                room.room_battle.blue_team.insert(0, team)
+                room.room_battle.blue_active = team
+
+                # room.room_battle.change(player=0, new=room.room_battle.blue_team.index(team))
     else:
         for team in room.room_battle.red_team:
             if team.__class__.__name__ == monster:
-                room.room_battle.change(player=1, new=room.room_battle.red_team.index(team))
-    print(room.room_battle.blue_team)
+                monster_place = room.room_battle.red_team.index(team)
+                del room.room_battle.red_team[monster_place]
+                room.room_battle.red_team.insert(0, team)
+                room.room_battle.red_active = team
     context.bot.send_message(chat_id=player_team, text='Монстр изменен')
+    return choose(update, context, room)
 
 
 def finishing_PvP(update: Update, context: CallbackContext, room, is_extra=False) -> None:
