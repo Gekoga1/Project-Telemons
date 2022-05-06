@@ -48,9 +48,13 @@ def create_room(update: Update, context: CallbackContext) -> None:
     room.count_players = 0
     room.player_list = []
     room.round_data = {}
-
+    reply_markup = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton('❌Выход из боя❌', callback_data='exit_fight')
+        ]
+    ])
     query.edit_message_text(
-        text='Подходящих комнат не нашлось, поэтому комната была создана.\nВы уже находитесь в ней, ждите пользователей')
+        text='Подходящих комнат не нашлось, поэтому комната была создана.\nВы уже находитесь в ней, ждите пользователей', reply_markup=reply_markup)
 
     context.chat_data['roomName'] = user.username
     room.player_list.append(update.effective_message.chat_id)
@@ -99,6 +103,7 @@ def show_room(update: Update, context: CallbackContext, room) -> None:
         room.room_battle = Battle(None, teams[room.blue_player], None, teams[room.red_player])
         room.room_battle.start()
         test_game(update=update, context=context, room=room)
+
 
 
 def test_game(update: Update, context: CallbackContext, room) -> None:
@@ -315,7 +320,8 @@ def change_monster_fight(update: Update, context: CallbackContext, monster, play
     else:
         for team in room.room_battle.red_team:
             if team.__class__.__name__ == monster:
-                room.room_battle.change(player=0, new=room.room_battle.red_team.index(team))
+                room.room_battle.change(player=1, new=room.room_battle.red_team.index(team))
+    print(room.room_battle.blue_team)
     context.bot.send_message(chat_id=player_team, text='Монстр изменен')
 
 
@@ -352,12 +358,17 @@ def finishing_PvP(update: Update, context: CallbackContext, room, is_extra=False
 
 
 def fighting_PVE(update: Update, context: CallbackContext):
-    dummy = random.choice([Spyland(lvl=5), Ailox(lvl=5), Wulvit(lvl=5)])
-    dummy.generate_skills()
-
     id = update.effective_user.id
     team = teams[id]
 
+    team_monster_names = []
+    for monster_name in team:
+        team_monster_names.append(monster_name.__class__.__name__)
+
+    dummy = random.choice([Spyland(lvl=5), Ailox(lvl=5), Wulvit(lvl=5)])
+    while dummy.__class__.__name__ in team_monster_names:
+        dummy = random.choice([Spyland(lvl=5), Ailox(lvl=5), Wulvit(lvl=5)])
+    dummy.generate_skills()
     battle = Battle(None, team, None, [dummy])
 
     skill = battle.blue_active.get_skills()
@@ -368,7 +379,12 @@ def fighting_PVE(update: Update, context: CallbackContext):
     skills.append([InlineKeyboardButton('Поймать монстра', callback_data=f'Поймать Монстра')])
     skills.append([InlineKeyboardButton('Выход из боя', callback_data=f'exit_pve')])
     reply_markup = InlineKeyboardMarkup(skills)
-    context.bot.send_message(chat_id=id, text=battle.print(reverse=False), reply_markup=reply_markup)
+    fight_data = battle.print(reverse=False).split('\n')
+    context.bot.send_message(chat_id=id,
+                             text=f'Ваш противник \n{fight_data[0]}\n{fight_data[1]}\n'
+                                  f'Ваша команда \n{fight_data[3]}\n{fight_data[4]}',
+                             reply_markup=reply_markup)
+    # context.bot.send_message(chat_id=id, text=battle.print(reverse=False), reply_markup=reply_markup)
     context.bot_data[id]['stage'] = Stage.PLAY_PVE
     context.bot_data[id]['pve'] = battle
 
