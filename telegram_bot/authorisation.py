@@ -5,9 +5,6 @@ from configure.configuration import database_manager
 from configure.monsters_information import spylit, ice, grass
 
 
-# from monsters import check_add_monster, change_team, change_collection
-
-
 def write_nickname(update: Update, context: CallbackContext):  # собственный ник
     name = update.message.text
     context.chat_data['name'] = name
@@ -44,7 +41,7 @@ def show_spylit_information(update: Update, context: CallbackContext):
             InlineKeyboardButton('Вернуться к выбору', callback_data='choose_fst_monster')
         ]
     ])
-    photo = open('../data/img/spylit.png', 'rb')
+    photo = open('../resources/monster_images/Spylit.png', 'rb')
     update.effective_user.send_photo(photo=photo, caption=spylit, reply_markup=ques)
 
 
@@ -57,7 +54,7 @@ def show_ice_information(update: Update, context: CallbackContext):
             InlineKeyboardButton('Вернуться к выбору', callback_data='choose_fst_monster')
         ]
     ])
-    photo = open('../data/img/Ailox.png', 'rb')
+    photo = open('../resources/monster_images/Ailox.png', 'rb')
     update.effective_user.send_photo(photo=photo, caption=ice, reply_markup=ques)
 
 
@@ -70,7 +67,7 @@ def show_grass_information(update: Update, context: CallbackContext):
             InlineKeyboardButton('Вернуться к выбору', callback_data='choose_fst_monster')
         ]
     ])
-    photo = open('../data/img/Ailox.png')
+    photo = open('../resources/monster_images/Wulvit.png')
     update.effective_user.send_photo(photo=photo, caption=grass, reply_markup=ques)
 
 
@@ -103,7 +100,8 @@ def registration(update: Update, context: CallbackContext, monster_class): # з�
         add_user(update, context, name, team)
         update.effective_user.send_message(f"Вы успешно зарегистрировались.\n\nВаше имя в игре {name}\n"
                                        f"Вы всегда можете его изменить, вызвав команду /game_settings\n\n"
-                                       f"Чтобы выйти в главное меню, введите команду /main_menu")
+                                       f"Чтобы выйти в главное меню, введите команду /main_menu\n"
+                                           f"Ознакомиться в правилами можно по команде /info")
     except Exception as ex:
         print(ex)
         update.effective_user.send_message('Произошла ошибка при регистрации, попробуйте ещё раз')

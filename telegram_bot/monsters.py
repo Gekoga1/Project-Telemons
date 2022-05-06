@@ -2,9 +2,9 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext
 
 from configure.configuration import database_manager, MONSTER_NUM, NOTHING, ABILITY_NUM, TEAM_NUM, COLLECTION_NUM, \
-    COLLECTION_TEAM, DELETE_FROM_TEAM, SKILL_CHANGE, EVOLUTION
-from main import main_menu
+    COLLECTION_TEAM, DELETE_FROM_TEAM, EVOLUTION
 from game_logic.game_lib import Spylit, Spylish, Ailox, Ailoprex, Wulvit, Wullies, Spyland, Ailopix, Wulkiss
+from main import main_menu
 
 
 def team_or_collection(update: Update, context: CallbackContext):  # выбор, что смотреть: коллекция или команда
@@ -85,7 +85,7 @@ def monster_info(update: Update, context: CallbackContext):  # информац�
                f'Опыт: {collection[monster_num - 1][3]}\nСпособности: {", ".join(collection[monster_num - 1][-1].split(";"))}'
     else:
         text = f'Монстр: {collection[monster_num - 1][1]}\nУровень: {collection[monster_num - 1][2]}\n' \
-            f'Опыт: {collection[monster_num - 1][3]}\nСпособности: {", ".join(collection[monster_num - 1][-1].split(";"))}'
+               f'Опыт: {collection[monster_num - 1][3]}\nСпособности: {", ".join(collection[monster_num - 1][-1].split(";"))}'
     update.effective_user.send_message(text=text)
     monster_activity(update, context)
 
@@ -395,23 +395,32 @@ def get_abilities(update: Update, context: CallbackContext):  # получени
 def create_monster_class(update: Update, context: CallbackContext, monster_id):
     monster_info = database_manager.get_monster_info(monster_id)
     if monster_info[1] == 'Spylit':
-        monster = Spylit(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4], skills=monster_info[-1].split(';'))
+        monster = Spylit(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4],
+                         skills=monster_info[-1].split(';'))
     elif monster_info[1] == 'Spylish':
-        monster = Spylish(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4], skills=monster_info[-1].split(';'))
+        monster = Spylish(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4],
+                          skills=monster_info[-1].split(';'))
     elif monster_info[1] == 'Spyland':
-        monster = Spyland(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4], skills=monster_info[-1].split(';'))
+        monster = Spyland(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4],
+                          skills=monster_info[-1].split(';'))
     elif monster_info[1] == 'Ailox':
-        monster = Ailox(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4], skills=monster_info[-1].split(';'))
+        monster = Ailox(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4],
+                        skills=monster_info[-1].split(';'))
     elif monster_info[1] == 'Ailoprex':
-        monster = Ailoprex(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4], skills=monster_info[-1].split(';'))
+        monster = Ailoprex(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4],
+                           skills=monster_info[-1].split(';'))
     elif monster_info[1] == 'Ailopix':
-        monster = Ailopix(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4], skills=monster_info[-1].split(';'))
+        monster = Ailopix(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4],
+                          skills=monster_info[-1].split(';'))
     elif monster_info[1] == 'Wulvit':
-        monster = Wulvit(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4], skills=monster_info[-1].split(';'))
+        monster = Wulvit(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4],
+                         skills=monster_info[-1].split(';'))
     elif monster_info[1] == 'Wullies':
-        monster = Wullies(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4], skills=monster_info[-1].split(';'))
+        monster = Wullies(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4],
+                          skills=monster_info[-1].split(';'))
     elif monster_info[1] == 'Wulkiss':
-        monster = Wulkiss(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4], skills=monster_info[-1].split(';'))
+        monster = Wulkiss(lvl=monster_info[2], exp=monster_info[3], shiny=monster_info[4],
+                          skills=monster_info[-1].split(';'))
     else:
         update.effective_user.send_message('Произошла ошибка, попробуйте ещё раз позже')
         return

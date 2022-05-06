@@ -1,16 +1,12 @@
-import logging
-
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 
-from configure.configuration import MONSTER_NUM, ABILITY_NUM, NOTHING, TEAM_NUM, COLLECTION_NUM, NICKNAME, \
-    COLLECTION_TEAM, DELETE_FROM_TEAM, SKILL_CHANGE, EVOLUTION
 from authorisation import *
+from configure.configuration import NICKNAME
 from configure.secrets import API_TOKEN
 from fighting import *
 from game_logic.game_lib import *
 from monsters import *
 from settings import *
-from random import choices
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
@@ -36,70 +32,6 @@ def check_query(update: Update, context: CallbackContext) -> None:
                                 'Если надумаете, переходите по этой ссылке /start')
     elif query.data == 'delete_yes':
         delete_user(update=update, context=context)
-    elif query.data == 'change_game_name':
-        propose_change_user_nickname(update=update, context=context, query=query)
-    elif query.data == 'delete_no':
-        query.edit_message_text('Процесс отменён')
-    elif query.data == 'nickname':
-        context.chat_data['waiting_for'] = NICKNAME
-        query.edit_message_text('Введите свой ник')
-        write_nickname(update, context)
-    elif query.data == 'tg_name':
-        name_from_telegram(update, context)
-    elif query.data == 'delete from team':
-        show_team_for_delete(update, context)
-    elif query.data == 'game_settings':
-        game_settings(update=update, context=context)
-    elif query.data == 'choose_type_fight':
-        choose_type_fight(update=update, context=context)
-    elif query.data == 'PVP':
-        fight_PVP(update=update, context=context)
-    elif query.data == 'PVE':
-        fighting_PVE(update, context)
-    elif query.data == 'join_room':
-        join_room(update, context)
-        context.bot_data[id]['stage'] = Stage.SELECT_ROOM
-        # нажата кнопка создать комнату
-    elif query.data == 'create_room':
-        create_room(update, context)
-    if query.data in ['Wulvit', 'Wullies'] and context.bot_data[id]['stage'] == Stage.CHANGE_MONSTER:
-        try:
-            change_monster_fight(update, context, monster=query.data, player_team=id)
-        except Exception as exception:
-            print(exception)
-    elif query.data.split(' ')[0] in ['Атака', 'Смена', 'Поймать'] and context.bot_data[id]['stage'] == Stage.PLAY_PVE:
-        continue_fighting_PVE(update, context, text=query.data, id=id)
-    elif query.data.split(' ')[0] in ['Атака', 'Смена']:
-        main_fight(update=update, context=context, text=query.data)
-
-    # elif query.data in rooms.keys():
-    #     select_room(update, context)
-    #     context.bot_data[id]['stage'] = Stage.PLAYING_GAME
-
-    elif query.data == 'monsters':
-        team_or_collection(update, context)
-    elif query.data == 'team':
-        team_info(update, context)
-    elif query.data == 'collection':
-        collection_info(update, context)
-    elif query.data == 'change team':
-        write_team_num(update, context)
-    elif context.chat_data['waiting_for'] == DELETE_FROM_TEAM:
-        select_monster_for_delete(update, context)
-    elif query.data == 'change monster':
-        show_team_for_change(update, context)
-    elif query.data == 'learn_skills':
-        ask_skill_num(update, context)
-    elif query.data == 'monster info':
-        monster_info(update, context)
-    elif query.data == 'main menu':
-        main_menu(update, context)
-    elif query.data == 'show ability':
-        show_abilities(update, context)
-    elif query.data == 'exit_fight':
-        finishing_PvP(update, context, is_extra=True, room=None)
-    elif query.data == 'exit_pve':
-        finishing_PVE(update, context, id, extra=True)
     elif query.data == 'choose_fst_monster':
         choose_fst_monster(update, context)
     elif query.data == 'propose_spylit':
@@ -120,18 +52,65 @@ def check_query(update: Update, context: CallbackContext) -> None:
         monster_class = Wulvit(lvl=5, shiny=choices([True, False], weights=[50, 50], k=1)[0])
         monster_class.generate_skills()
         registration(update, context, monster_class)
-    elif context.chat_data['waiting_for'] == COLLECTION_NUM:
-        select_monster(update, context)
-    elif context.chat_data['waiting_for'] == COLLECTION_TEAM:
-        select_monster_in_team(update, context)
+    elif query.data == 'change_game_name':
+        propose_change_user_nickname(update=update, context=context, query=query)
+    elif query.data == 'delete_no':
+        query.edit_message_text('Процесс отменён')
+    elif query.data == 'main menu':
+        main_menu(update, context)
+    elif query.data == 'nickname':
+        context.chat_data['waiting_for'] = NICKNAME
+        query.edit_message_text('Введите свой ник')
+        write_nickname(update, context)
+    elif query.data == 'tg_name':
+        name_from_telegram(update, context)
+    elif query.data == 'delete from team':
+        show_team_for_delete(update, context)
+    elif query.data == 'game_settings':
+        game_settings(update=update, context=context)
+    elif query.data == 'choose_type_fight':
+        choose_type_fight(update=update, context=context)
+    elif query.data == 'PVP':
+        fight_PVP(update=update, context=context)
+    elif query.data == 'PVE':
+        fighting_PVE(update, context)
+    elif query.data == 'exit_fight':
+        finishing_PvP(update, context, is_extra=True, room=None)
+    elif query.data == 'exit_pve':
+        finishing_PVE(update, context, id, extra=True)
+    elif query.data == 'create_room':
+        create_room(update, context)
+    elif query.data == 'join_room':
+        join_room(update, context)
+        context.bot_data[id]['stage'] = Stage.SELECT_ROOM
+    elif query.data == 'change monster':
+        show_team_for_change(update, context)
+    elif query.data == 'learn_skills':
+        ask_skill_num(update, context)
+    elif query.data == 'monster info':
+        monster_info(update, context)
+    elif query.data == 'show ability':
+        show_abilities(update, context)
+    elif query.data == 'monsters':
+        team_or_collection(update, context)
+    elif query.data == 'team':
+        team_info(update, context)
+    elif query.data == 'collection':
+        collection_info(update, context)
+    elif query.data == 'change team':
+        write_team_num(update, context)
     elif query.data == 'want evolution':
         want_evolution(update, context)
     elif query.data == 'evolution':
         evolution(update, context)
-    elif context.chat_data['waiting_for'] == SKILL_CHANGE:
-        select_skill_for_change(update, context)
-    elif context.chat_data['waiting_for'] == EVOLUTION:
-        select_monster_evolution(update, context)
+    elif query.data.split(' ')[0] in ['Атака', 'Смена', 'Поймать'] and context.bot_data[id][
+        'stage'] == Stage.PLAY_PVE:
+        continue_fighting_PVE(update, context, text=query.data, id=id)
+    elif query.data.split(' ')[0] in ['Атака', 'Смена']:
+        main_fight(update=update, context=context, text=query.data)
+    elif query.data in [i.__class__.__name__ for i in teams[id]] and context.bot_data[id][
+        'stage'] == Stage.CHANGE_MONSTER:
+        change_monster_fight(update, context, monster=query.data, player_team=id)
     else:
         query.edit_message_text('Я вас не понимаю, повторите попытку ввода.')
 
@@ -147,6 +126,16 @@ def process_message(update: Update, context: CallbackContext):  # обработ
         get_skill_num(update, context)
     elif context.chat_data['waiting_for'] == TEAM_NUM:
         get_team_num(update, context)
+    elif context.chat_data['waiting_for'] == DELETE_FROM_TEAM:
+        select_monster_for_delete(update, context)
+    elif context.chat_data['waiting_for'] == COLLECTION_NUM:
+        select_monster(update, context)
+    elif context.chat_data['waiting_for'] == COLLECTION_TEAM:
+        select_monster_in_team(update, context)
+    elif context.chat_data['waiting_for'] == SKILL_CHANGE:
+        select_skill_for_change(update, context)
+    elif context.chat_data['waiting_for'] == EVOLUTION:
+        select_monster_evolution(update, context)
     elif context.chat_data['waiting_for'] == NOTHING:
         return
 
@@ -194,7 +183,6 @@ def main_menu(update: Update, context: CallbackContext):  # главное ме�
             update.message.reply_text('Вы не авторизованы, чтобы играть нужно авторизоваться.')
 
 
-
 def add_bot_data(update: Update, context: CallbackContext, id):
     context.bot_data[id] = {}
 
@@ -236,11 +224,6 @@ def pars_team(team):
     return new_team
 
 
-# Пример функционала игры
-def show_game_example(update: Update, context: CallbackContext):
-    pass
-
-
 # Начальная функция. Проверяет есть ли аккаунт или нет, регистрация
 def start(update: Update, context: CallbackContext) -> None:
     id = update.effective_user.id
@@ -276,7 +259,6 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("info", info))
     dispatcher.add_handler(CommandHandler("profile", profile))
-    dispatcher.add_handler(CommandHandler("show", show_game_example))
     dispatcher.add_handler(CommandHandler("delete_account", delete_user_suggestion))
     dispatcher.add_handler(CommandHandler("change_name", change_user_nickname))
     dispatcher.add_handler(CommandHandler("game_settings", game_settings))

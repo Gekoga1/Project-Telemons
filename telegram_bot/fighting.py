@@ -1,10 +1,9 @@
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 import random
 
+from telegram import ParseMode
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext
 
-import random
 from configure.configuration import rooms, teams
 from creating_rooms.Room import Room, Stage
 from game_logic.game_lib import *
@@ -56,7 +55,8 @@ def create_room(update: Update, context: CallbackContext) -> None:
         ]
     ])
     query.edit_message_text(
-        text='Подходящих комнат не нашлось, поэтому комната была создана.\nВы уже находитесь в ней, ждите пользователей', reply_markup=reply_markup)
+        text='Подходящих комнат не нашлось, поэтому комната была создана.\nВы уже находитесь в ней, ждите пользователей',
+        reply_markup=reply_markup)
 
     context.chat_data['roomName'] = user.username
     room.player_list.append(update.effective_message.chat_id)
@@ -75,21 +75,6 @@ def join_room(update: Update, context: CallbackContext) -> None:
             room_name = context.chat_data['roomName']
             room = rooms[room_name]
             show_room(update=update, context=context, room=room)
-    # buttons = []
-    # for roomKey in rooms:
-    #     if rooms[roomKey].count_players <= 2:
-    #         buttons.append(InlineKeyboardButton(rooms[roomKey].room_name, callback_data=rooms[roomKey].room_name))
-    # keyboard = [buttons]
-    # reply_markup = InlineKeyboardMarkup(keyboard)
-    # query = update.callback_query
-    # query.edit_message_text(text='Выберите комнату', reply_markup=reply_markup)
-
-
-# def select_room(update: Update, context: CallbackContext) -> None:
-#     context.chat_data['roomName'] = update.callback_query.data
-#     room_name = context.chat_data['roomName']
-#     room = rooms[room_name]
-#     show_room(update=update, context=context, room=room)
 
 
 def show_room(update: Update, context: CallbackContext, room) -> None:
@@ -107,25 +92,12 @@ def show_room(update: Update, context: CallbackContext, room) -> None:
         test_game(update=update, context=context, room=room)
 
 
-
 def test_game(update: Update, context: CallbackContext, room) -> None:
-    # first_player = random.choice(room.player_list)
     for i in room.player_list:
         context.bot.send_message(chat_id=i, text='Игра началась')
         context.bot.send_message(chat_id=i,
                                  text=f'Раунд номер {room.count_round}\nДелайте свой ход и ждите противник')
     choose(update, context, room)
-
-    # text = update.message.text
-    # if text == 'hello':
-    #     room_name = context.chat_data['roomName']
-    #     context.bot_data[id]['stage'] = Stage.LOBBY
-    #     update.message.reply_text('УРА! Вы угадали это слово')
-    #     del rooms[room_name]
-    #     main_menu(update, context)
-    #     print(rooms)
-    # else:
-    #     update.message.reply_text(text='Вы не угадали слово')
 
 
 def choose(update: Update, context: CallbackContext, room) -> None:
@@ -143,13 +115,11 @@ def choose(update: Update, context: CallbackContext, room) -> None:
             your_name = database_manager.get_gamename(user_id=room.blue_player)
             opponent_name = database_manager.get_gamename(user_id=room.red_player)
             fight_data = room.room_battle.print(reverse=True)
-            fight_data.remove('<code>')
-            fight_data.remove('</code>')
             fight_data = fight_data.split('\n')
             context.bot.send_message(chat_id=a,
                                      text=f'Команда {your_name}\n{fight_data[0]}\n{fight_data[1]}\n'
                                           f'Команда {opponent_name} \n{fight_data[3]}\n{fight_data[4]}',
-                                     reply_markup=reply_markup)
+                                     reply_markup=reply_markup, parse_mode=ParseMode.HTML)
         else:
             skill = room.room_battle.red_active.get_skills()
             skills = []
@@ -163,13 +133,11 @@ def choose(update: Update, context: CallbackContext, room) -> None:
             your_name = database_manager.get_gamename(user_id=room.blue_player)
             opponent_name = database_manager.get_gamename(user_id=room.red_player)
             fight_data = room.room_battle.print(reverse=False)
-            fight_data.remove('<code>')
-            fight_data.remove('</code>')
             fight_data = fight_data.split('\n')
             context.bot.send_message(chat_id=a,
                                      text=f'Команда {opponent_name}\n{fight_data[0]}\n{fight_data[1]}\n'
                                           f'Команда {your_name} \n{fight_data[3]}\n{fight_data[4]}',
-                                     reply_markup=reply_markup)
+                                     reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 
 def main_fight(update: Update, context: CallbackContext, text) -> None:
@@ -242,21 +210,6 @@ def main_fight(update: Update, context: CallbackContext, text) -> None:
 
         room.room_battle.update()
 
-        # for i in room.player_list:
-        #     your_name = database_manager.get_gamename(user_id=i)
-        #     if i == room.blue_player:
-        #         opponent_name = database_manager.get_gamename(user_id=room.red_player)
-        #         fight_data = room.room_battle.print(reverse=False).split('\n')
-        #         context.bot.send_message(chat_id=i,
-        #                                  text=f'Команда {your_name}\n{"".join(fight_data[0:1])}\n{"".join(fight_data[1])}\n'
-        #                                       f'Команда {opponent_name} \n{"".join(fight_data[3:])}')
-        #     else:
-        #         opponent_name = database_manager.get_gamename(user_id=room.blue_player)
-        #         fight_data = room.room_battle.print(reverse=True).split('\n')
-        #         context.bot.send_message(chat_id=i,
-        #                                  text=f'Команда {your_name}\n{"".join(fight_data[0:1])}\n{"".join(fight_data[1])}\n'
-        #                                       f'Команда {opponent_name} \n{"".join(fight_data[3:])}')
-
         if all(map(lambda x: not x.alive, room.room_battle.blue_team)):
             your_name = database_manager.get_gamename(user_id=room.red_player)
             context.bot.send_message(chat_id=room.red_player, text=f'Поздравляем! Вы победили!')
@@ -293,7 +246,6 @@ def main_fight(update: Update, context: CallbackContext, text) -> None:
 
 def propose_change_monster(update: Update, context: CallbackContext, monster, player_move, room):
     buttons = []
-    move = ''
     print('propose')
     if player_move == 'blue':
         move = room.blue_player
@@ -335,7 +287,6 @@ def change_monster_fight(update: Update, context: CallbackContext, monster, play
 
 def finishing_PvP(update: Update, context: CallbackContext, room, is_extra=False) -> None:
     if is_extra is not True:
-        change_monsters_exp(update, context, 100)
         change_monsters_exp(update, context, 100, user_id=room.winner)
         for user_id in room.player_list:
             try:
