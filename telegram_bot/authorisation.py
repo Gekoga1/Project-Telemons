@@ -20,13 +20,13 @@ def name_from_telegram(update: Update, context: CallbackContext):  # имя из
 def choose_fst_monster(update: Update, context: CallbackContext):  # выбор стартового монстра
     ques = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton('Каменный паук', callback_data='propose_spylit'),
+            InlineKeyboardButton('Spylit', callback_data='propose_spylit'),
         ],
         [
-            InlineKeyboardButton('Ледяной лис', callback_data='propose_ice')
+            InlineKeyboardButton('Ailox', callback_data='propose_ice')
         ],
         [
-            InlineKeyboardButton('Травяной', callback_data='propose_grass')
+            InlineKeyboardButton('Wulvit', callback_data='propose_grass')
         ]
     ])
     update.effective_user.send_message(text='Выберите своего первого монстра', reply_markup=ques)
@@ -67,7 +67,7 @@ def show_grass_information(update: Update, context: CallbackContext):
             InlineKeyboardButton('Вернуться к выбору', callback_data='choose_fst_monster')
         ]
     ])
-    photo = open('../resources/monster_images/Wulvit.png')
+    photo = open('../resources/monster_images/Wulvit.png', 'rb')
     update.effective_user.send_photo(photo=photo, caption=grass, reply_markup=ques)
 
 

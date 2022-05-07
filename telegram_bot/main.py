@@ -1,7 +1,7 @@
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 
 from authorisation import *
-from configure.configuration import NICKNAME
+from configure.configuration import NICKNAME, SKILL_CHANGE
 from configure.secrets import API_TOKEN
 from fighting import *
 from game_logic.game_lib import *
@@ -107,8 +107,19 @@ def check_query(update: Update, context: CallbackContext) -> None:
         continue_fighting_PVE(update, context, text=query.data, id=id)
     elif query.data.split(' ')[0] in ['Атака', 'Смена'] and context.bot_data[id]['stage'] == Stage.PLAY_GAME:
         main_fight(update=update, context=context, text=query.data)
-    elif query.data in [i.__class__.__name__ for i in teams[id]] and context.bot_data[id]['stage'] == Stage.CHANGE_MONSTER:
+    elif query.data in [i.__class__.__name__ for i in teams[id]] and context.bot_data[id][
+        'stage'] == Stage.CHANGE_MONSTER:
         change_monster_fight(update, context, monster=query.data, player_team=id)
+    elif context.chat_data['waiting_for'] == DELETE_FROM_TEAM:
+        select_monster_for_delete(update, context)
+    elif context.chat_data['waiting_for'] == COLLECTION_NUM:
+        select_monster(update, context)
+    elif context.chat_data['waiting_for'] == COLLECTION_TEAM:
+        select_monster_in_team(update, context)
+    elif context.chat_data['waiting_for'] == SKILL_CHANGE:
+        select_skill_for_change(update, context)
+    elif context.chat_data['waiting_for'] == EVOLUTION:
+        select_monster_evolution(update, context)
     else:
         query.edit_message_text('Я вас не понимаю, повторите попытку ввода.')
 
@@ -124,16 +135,7 @@ def process_message(update: Update, context: CallbackContext):  # обработ
         get_skill_num(update, context)
     elif context.chat_data['waiting_for'] == TEAM_NUM:
         get_team_num(update, context)
-    elif context.chat_data['waiting_for'] == DELETE_FROM_TEAM:
-        select_monster_for_delete(update, context)
-    elif context.chat_data['waiting_for'] == COLLECTION_NUM:
-        select_monster(update, context)
-    elif context.chat_data['waiting_for'] == COLLECTION_TEAM:
-        select_monster_in_team(update, context)
-    elif context.chat_data['waiting_for'] == SKILL_CHANGE:
-        select_skill_for_change(update, context)
-    elif context.chat_data['waiting_for'] == EVOLUTION:
-        select_monster_evolution(update, context)
+
     elif context.chat_data['waiting_for'] == NOTHING:
         return
 
@@ -215,10 +217,13 @@ def profile(update: Update, context: CallbackContext):
 
 def pars_team(team):
     new_team = []
-    for monster_id in team.split(';'):
-        data = database_manager.get_monster_info(monster_id)
-        exec(f'new_team.append({data[1]}(lvl={data[2]}, exp={data[3]}, shiny={data[4]}))')
-        new_team[-1].deconvert_skills(data[5])
+    try:
+        for monster_id in team.split(';'):
+            data = database_manager.get_monster_info(monster_id)
+            exec(f'new_team.append({data[1]}(lvl={data[2]}, exp={data[3]}, shiny={data[4]}))')
+            new_team[-1].deconvert_skills(data[5])
+    except Exception as ex:
+        print(ex)
     return new_team
 
 

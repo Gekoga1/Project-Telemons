@@ -34,15 +34,15 @@ class User:
             self.cursor.execute(req)
             self.connection.commit()
         except Exception as exception:
-            print(exception)
+            return False
 
     def add_monster(self, id, name, level, exp, shiny, skills):
         try:
             req = """INSERT INTO users_monsters VALUES (?, ?, ?, ?, ?, ?)"""
             self.cursor.execute(req, (id, name, level, exp, shiny, skills))
             self.connection.commit()
-        except Exception as ex:
-            print(ex)
+        except Exception as exception:
+            return False
 
     def add_user(self, id, username, game_name, team):
         collection = ''
@@ -52,7 +52,6 @@ class User:
             self.connection.commit()
             return True
         except Exception as exception:
-            print(exception)
             return False
 
     def check_user(self, id):
@@ -64,7 +63,6 @@ class User:
             else:
                 return False
         except Exception as exception:
-            print(exception)
             return False
 
     def delete_user(self, id):
@@ -74,7 +72,6 @@ class User:
             self.connection.commit()
             return True
         except Exception as exception:
-            print(exception)
             return False
 
     def change_user_nickname(self, nickname, id):
@@ -84,7 +81,6 @@ class User:
             self.connection.commit()
             return True
         except Exception as exception:
-            print(exception)
             return False
 
     def change_user_team(self, user_id, team):
@@ -132,7 +128,6 @@ class User:
             self.connection.commit()
             return True
         except Exception as exception:
-            print(exception)
             return False
 
     def update_user_gamename(self, name):
@@ -195,7 +190,7 @@ class User:
 
     def get_skill_info(self, skill):
         req = """SELECT info FROM Skills WHERE name = ?"""
-        res = self.cursor.execute(req, (skill, )).fetchone()
+        res = self.cursor.execute(req, (skill,)).fetchone()
         return ''.join(res)
 
     def change_monster_lvl(self, monster_id, level):
