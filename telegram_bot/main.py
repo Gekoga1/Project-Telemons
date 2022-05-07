@@ -1,7 +1,7 @@
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 
 from authorisation import *
-from configure.configuration import NICKNAME
+from configure.configuration import NICKNAME, SKILL_CHANGE
 from configure.secrets import API_TOKEN
 from fighting import *
 from game_logic.game_lib import *
@@ -110,6 +110,16 @@ def check_query(update: Update, context: CallbackContext) -> None:
     elif query.data in [i.__class__.__name__ for i in teams[id]] and context.bot_data[id][
         'stage'] == Stage.CHANGE_MONSTER:
         change_monster_fight(update, context, monster=query.data, player_team=id)
+    elif context.chat_data['waiting_for'] == DELETE_FROM_TEAM:
+        select_monster_for_delete(update, context)
+    elif context.chat_data['waiting_for'] == COLLECTION_NUM:
+        select_monster(update, context)
+    elif context.chat_data['waiting_for'] == COLLECTION_TEAM:
+        select_monster_in_team(update, context)
+    elif context.chat_data['waiting_for'] == SKILL_CHANGE:
+        select_skill_for_change(update, context)
+    elif context.chat_data['waiting_for'] == EVOLUTION:
+        select_monster_evolution(update, context)
     else:
         query.edit_message_text('Я вас не понимаю, повторите попытку ввода.')
 
@@ -125,16 +135,7 @@ def process_message(update: Update, context: CallbackContext):  # обработ
         get_skill_num(update, context)
     elif context.chat_data['waiting_for'] == TEAM_NUM:
         get_team_num(update, context)
-    elif context.chat_data['waiting_for'] == DELETE_FROM_TEAM:
-        select_monster_for_delete(update, context)
-    elif context.chat_data['waiting_for'] == COLLECTION_NUM:
-        select_monster(update, context)
-    elif context.chat_data['waiting_for'] == COLLECTION_TEAM:
-        select_monster_in_team(update, context)
-    elif context.chat_data['waiting_for'] == SKILL_CHANGE:
-        select_skill_for_change(update, context)
-    elif context.chat_data['waiting_for'] == EVOLUTION:
-        select_monster_evolution(update, context)
+
     elif context.chat_data['waiting_for'] == NOTHING:
         return
 
