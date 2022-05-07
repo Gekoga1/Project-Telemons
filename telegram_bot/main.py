@@ -217,10 +217,13 @@ def profile(update: Update, context: CallbackContext):
 
 def pars_team(team):
     new_team = []
-    for monster_id in team.split(';'):
-        data = database_manager.get_monster_info(monster_id)
-        exec(f'new_team.append({data[1]}(lvl={data[2]}, exp={data[3]}, shiny={data[4]}))')
-        new_team[-1].deconvert_skills(data[5])
+    try:
+        for monster_id in team.split(';'):
+            data = database_manager.get_monster_info(monster_id)
+            exec(f'new_team.append({data[1]}(lvl={data[2]}, exp={data[3]}, shiny={data[4]}))')
+            new_team[-1].deconvert_skills(data[5])
+    except Exception as ex:
+        print(ex)
     return new_team
 
 
