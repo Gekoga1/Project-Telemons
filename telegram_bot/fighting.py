@@ -431,7 +431,6 @@ def check_catch(update, context, id):
 
 def finishing_PVE(update, context, id, extra=False):
     if not extra:
-        battle = context.bot_data[id]['pve']
         change_monsters_exp(update, context, 50)
         context.bot_data[id]['stage'] = Stage.LOBBY
         del context.bot_data[id]['pve']
