@@ -181,12 +181,11 @@ def main_fight(update: Update, context: CallbackContext, text) -> None:
             data = room.round_data[user_id]
             data = data.split()
             if data[0] == 'Смена':
-                change_happened = True
                 if user_id == room.blue_player:
-                    propose_change_monster(update, context, room.room_battle.blue_active, player_move='blue',
+                    propose_change_monster(update, context, room.room_battle.blue_team[0], player_move='blue',
                                            room=room)
                 else:
-                    propose_change_monster(update, context, room.room_battle.blue_active, player_move='red',
+                    propose_change_monster(update, context, room.room_battle.red_team[0], player_move='red',
                                            room=room)
         if change_happened:
             if room.round_data[room.blue_player].split(' ')[0] == 'Атака':
@@ -209,7 +208,7 @@ def main_fight(update: Update, context: CallbackContext, text) -> None:
                     room.room_battle.red_turn(int(room.round_data[room.red_player].split(' ')[1]) - 1)
 
         room.room_battle.update()
-
+        check_current_death(update, context, room)
         if all(map(lambda x: not x.alive, room.room_battle.blue_team)):
             your_name = database_manager.get_gamename(user_id=room.red_player)
             context.bot.send_message(chat_id=room.red_player, text=f'Поздравляем! Вы победили!')
@@ -217,40 +216,42 @@ def main_fight(update: Update, context: CallbackContext, text) -> None:
             room.winner = room.red_player
             return finishing_PvP(update, context, room)
         elif all(map(lambda x: not x.alive, room.room_battle.red_team)):
-            your_name = database_manager.get_gamename(user_id=room.red_player)
+            your_name = database_manager.get_gamename(user_id=room.blue_player)
             context.bot.send_message(chat_id=room.blue_player, text=f'Поздравляем! Вы победили!')
             context.bot.send_message(chat_id=room.red_player, text=f'К сожалению, {your_name} вас одолел.')
             room.winner = room.blue_player
             return finishing_PvP(update, context, room)
-        if not room.room_battle.blue_active.alive:
-            if all(map(lambda x: not x.alive, room.room_battle.blue_team)):
-                pass
-            else:
-                propose_change_monster(update, context, room.room_battle.blue_active, 'blue', room)
-        elif not room.room_battle.red_active.alive:
-            if all(map(lambda x: not x.alive, room.room_battle.red_team)):
-                pass
-            else:
-                propose_change_monster(update, context, room.room_battle.red_active, 'red', room)
-        #     context.bot.send_message(chat_id=user_id, text=f'ход совершён')
-        # for user_id in room.round_data:
-        #     context.bot.send_message(chat_id=user_id, text=room.round_data[user_id])
-        # room.count_round += 1
-        # for user_id in room.round_data:
-        #     context.bot.send_message(chat_id=user_id,
-        #                              text=f'Раунд номер {room.count_round}\nДелайте свой ход и ждите противника')
-        room.round_data = {}
 
-        choose(update, context, room)
+        if not check_current_death(update, context, room):
+            room.round_data = {}
+            choose(update, context, room)
+
+
+def check_current_death(update: Update, context: CallbackContext, room):
+    if not room.room_battle.blue_active.alive:
+        if all(map(lambda x: not x.alive, room.room_battle.blue_team)):
+            pass
+        else:
+            context.bot.send_message(chat_id=room.blue_player,
+                                     text=f'Ваш текущий монстр мертв, поменяйте его на другого')
+            propose_change_monster(update, context, room.room_battle.blue_active, 'blue', room)
+            return True
+    elif not room.room_battle.red_active.alive:
+        if all(map(lambda x: not x.alive, room.room_battle.red_team)):
+            pass
+        else:
+            context.bot.send_message(chat_id=room.red_player,
+                                     text=f'Ваш текущий монстр мертв, поменяйте его на другого')
+            propose_change_monster(update, context, room.room_battle.red_active, 'red', room)
+            return True
+    return False
 
 
 def propose_change_monster(update: Update, context: CallbackContext, monster, player_move, room):
     buttons = []
-    print('propose')
     if player_move == 'blue':
         move = room.blue_player
         context.bot_data[room.blue_player]['stage'] = Stage.CHANGE_MONSTER
-        print(room.room_battle.blue_team)
         for member in room.room_battle.blue_team:
             if member.__class__.__name__ != monster.__class__.__name__:
                 buttons.append(InlineKeyboardButton(member.__class__.__name__, callback_data=member.__class__.__name__))
@@ -258,16 +259,11 @@ def propose_change_monster(update: Update, context: CallbackContext, monster, pl
         move = room.red_player
         context.bot_data[room.red_player]['stage'] = Stage.CHANGE_MONSTER
         for member in room.room_battle.red_team:
-            print(member)
             if member.__class__.__name__ != monster.__class__.__name__:
                 buttons.append(InlineKeyboardButton(member.__class__.__name__, callback_data=member.__class__.__name__))
     keyboard = [buttons]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    print(keyboard)
-    try:
-        context.bot.send_message(chat_id=move, text='Выберите на кого будете менять', reply_markup=reply_markup)
-    except Exception as exception:
-        print(exception)
+    context.bot.send_message(chat_id=move, text='Выберите на кого будете менять', reply_markup=reply_markup)
 
 
 def change_monster_fight(update: Update, context: CallbackContext, monster, player_team):
@@ -281,8 +277,6 @@ def change_monster_fight(update: Update, context: CallbackContext, monster, play
                 del room.room_battle.blue_team[monster_place]
                 room.room_battle.blue_team.insert(0, team)
                 room.room_battle.blue_active = team
-
-                # room.room_battle.change(player=0, new=room.room_battle.blue_team.index(team))
     else:
         for team in room.room_battle.red_team:
             if team.__class__.__name__ == monster:
@@ -291,12 +285,14 @@ def change_monster_fight(update: Update, context: CallbackContext, monster, play
                 room.room_battle.red_team.insert(0, team)
                 room.room_battle.red_active = team
     context.bot.send_message(chat_id=player_team, text='Монстр изменен')
-    return choose(update, context, room)
+    room.round_data = {}
+    choose(update, context, room)
 
 
 def finishing_PvP(update: Update, context: CallbackContext, room, is_extra=False) -> None:
     if is_extra is not True:
-        change_monsters_exp(update, context, 100, user_id=room.winner)
+
+        change_monsters_exp(update, context, 50, user_id=room.winner)
         for user_id in room.player_list:
             try:
                 context.bot_data[user_id]['stage'] = Stage.LOBBY
@@ -354,82 +350,78 @@ def fighting_PVE(update: Update, context: CallbackContext):
                              text=f'Ваш противник \n{fight_data[0]}\n{fight_data[1]}\n'
                                   f'Ваша команда \n{fight_data[3]}\n{fight_data[4]}',
                              reply_markup=reply_markup)
-    # context.bot.send_message(chat_id=id, text=battle.print(reverse=False), reply_markup=reply_markup)
     context.bot_data[id]['stage'] = Stage.PLAY_PVE
     context.bot_data[id]['pve'] = battle
 
 
 def continue_fighting_PVE(update: Update, context: CallbackContext, text, id):
-    try:
-        check_catch_move = False
-        text_info = text.split()
-        battle = context.bot_data[id]['pve']
-        if text_info[0] == 'Атака':
-            if battle.blue_active.skills[int(text_info[1]) - 1] is not None:
-                context.bot.send_message(chat_id=id, text='Ход сделан')
+    check_catch_move = False
+    text_info = text.split()
+    battle = context.bot_data[id]['pve']
+    if text_info[0] == 'Атака':
+        if battle.blue_active.skills[int(text_info[1]) - 1] is not None:
+            context.bot.send_message(chat_id=id, text='Ход сделан')
+        else:
+            context.bot.send_message(chat_id=id, text='Ошибка ввода')
+    elif text_info[0] == 'Поймать':
+        if check_catch(update, context, id):
+
+            monsters_ids = database_manager.get_monsters_ids()
+            if len(monsters_ids) == 0:
+                monster_id = 1
             else:
-                context.bot.send_message(chat_id=id, text='Ошибка ввода')
-        elif text_info[0] == 'Поймать':
-            if check_catch(update, context, id):
+                monster_id = int(monsters_ids[-1][0]) + 1
 
-                monsters_ids = database_manager.get_monsters_ids()
-                if len(monsters_ids) == 0:
-                    monster_id = 1
-                else:
-                    monster_id = int(monsters_ids[-1][0]) + 1
+            monster = battle.red_active
+            database_manager.add_monster(id=monster_id, name=monster.__class__.__name__,
+                                         level=monster.lvl, exp=monster.exp, shiny=monster.shiny,
+                                         skills=monster.convert_skills())
+            collection = database_manager.get_collection(id)
+            new_collection = collection + ';' + str(monster_id)
 
-                monster = battle.red_active
-                database_manager.add_monster(id=monster_id, name=monster.__class__.__name__,
-                                             level=monster.lvl, exp=monster.exp, shiny=monster.shiny,
-                                             skills=monster.convert_skills())
-                collection = database_manager.get_collection(id)
-                new_collection = collection + ';' + str(monster_id)
+            change_collection(update, context, new_collection)
+            context.bot.send_message(chat_id=id,
+                                     text='Вам удалось поймать монстра и попал в команду, также вы выигрываете.')
+            finishing_PVE(update, context, id)
+        else:
+            context.bot.send_message(chat_id=id, text='Увы, вам не удалось поймать бота')
+            check_catch_move = True
 
-                change_collection(update, context, new_collection)
-                context.bot.send_message(chat_id=id,
-                                         text='Вам удалось поймать монстра и попал в команду, также вы выигрываете.')
-                finishing_PVE(update, context, id)
-            else:
-                context.bot.send_message(chat_id=id, text='Увы, вам не удалось поймать бота')
-                check_catch_move = True
-
-        if not check_catch_move:
-            red_choice = randint(0, 3 - battle.red_active.skills.count(None))
-            if battle.red_active.c_speed > battle.blue_active.c_speed:
+    if not check_catch_move:
+        red_choice = randint(0, 3 - battle.red_active.skills.count(None))
+        if battle.red_active.c_speed > battle.blue_active.c_speed:
+            battle.red_turn(int(red_choice))
+            battle.blue_turn(int(text.split(' ')[1]) - 1)
+        elif battle.red_active.c_speed < battle.blue_active.c_speed:
+            battle.blue_turn(int(text.split(' ')[1]) - 1)
+            battle.red_turn(int(red_choice))
+        else:
+            if choice([True, False]):
                 battle.red_turn(int(red_choice))
                 battle.blue_turn(int(text.split(' ')[1]) - 1)
-            elif battle.red_active.c_speed < battle.blue_active.c_speed:
+            else:
                 battle.blue_turn(int(text.split(' ')[1]) - 1)
                 battle.red_turn(int(red_choice))
-            else:
-                if choice([True, False]):
-                    battle.red_turn(int(red_choice))
-                    battle.blue_turn(int(text.split(' ')[1]) - 1)
-                else:
-                    battle.blue_turn(int(text.split(' ')[1]) - 1)
-                    battle.red_turn(int(red_choice))
-        battle.update()
+    battle.update()
 
-        if all(map(lambda x: not x.alive, battle.blue_team)):
-            context.bot.send_message(chat_id=id, text=f'Ты проиграл')
-            return finishing_PVE(update, context, id)
-        elif all(map(lambda x: not x.alive, battle.red_team)):
-            context.bot.send_message(chat_id=id, text=f'Ты выиграл и получаешь опыт')
-            return finishing_PVE(update, context, id)
+    if all(map(lambda x: not x.alive, battle.blue_team)):
+        context.bot.send_message(chat_id=id, text=f'Ты проиграл')
+        return finishing_PVE(update, context, id)
+    elif all(map(lambda x: not x.alive, battle.red_team)):
+        context.bot.send_message(chat_id=id, text=f'Ты выиграл и получаешь опыт')
+        return finishing_PVE(update, context, id)
 
-        skill = battle.blue_active.get_skills()
-        skills = []
-        for i in skill:
-            if i != 'None':
-                skills.append([InlineKeyboardButton(i, callback_data=f'Атака {skill.index(i) + 1}')])
-        skills.append([InlineKeyboardButton('Поймать монстра', callback_data=f'Поймать Монстра')])
-        skills.append([InlineKeyboardButton('Выход из боя', callback_data=f'exit_pve')])
-        reply_markup = InlineKeyboardMarkup(skills)
+    skill = battle.blue_active.get_skills()
+    skills = []
+    for i in skill:
+        if i != 'None':
+            skills.append([InlineKeyboardButton(i, callback_data=f'Атака {skill.index(i) + 1}')])
+    skills.append([InlineKeyboardButton('Поймать монстра', callback_data=f'Поймать Монстра')])
+    skills.append([InlineKeyboardButton('Выход из боя', callback_data=f'exit_pve')])
+    reply_markup = InlineKeyboardMarkup(skills)
 
-        context.bot.send_message(chat_id=id, text=battle.print(), reply_markup=reply_markup,
-                                 parse_mode=ParseMode.HTML)
-    except Exception as exception:
-        print(exception)
+    context.bot.send_message(chat_id=id, text=battle.print(), reply_markup=reply_markup,
+                             parse_mode=ParseMode.HTML)
 
 
 def check_catch(update, context, id):
@@ -440,8 +432,7 @@ def check_catch(update, context, id):
 def finishing_PVE(update, context, id, extra=False):
     if not extra:
         battle = context.bot_data[id]['pve']
-        change_monsters_exp(update, context, 100)
-        change_monsters_exp(update, context, 100)
+        change_monsters_exp(update, context, 50)
         context.bot_data[id]['stage'] = Stage.LOBBY
         del context.bot_data[id]['pve']
         context.bot.send_message(chat_id=id,

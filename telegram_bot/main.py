@@ -107,7 +107,8 @@ def check_query(update: Update, context: CallbackContext) -> None:
         continue_fighting_PVE(update, context, text=query.data, id=id)
     elif query.data.split(' ')[0] in ['Атака', 'Смена'] and context.bot_data[id]['stage'] == Stage.PLAY_GAME:
         main_fight(update=update, context=context, text=query.data)
-    elif query.data in [i.__class__.__name__ for i in teams[id]] and context.bot_data[id]['stage'] == Stage.CHANGE_MONSTER:
+    elif query.data in [i.__class__.__name__ for i in teams[id]] and context.bot_data[id][
+        'stage'] == Stage.CHANGE_MONSTER:
         change_monster_fight(update, context, monster=query.data, player_team=id)
     else:
         query.edit_message_text('Я вас не понимаю, повторите попытку ввода.')
